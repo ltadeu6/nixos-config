@@ -1,1 +1,2 @@
-secrets.nix
+/nixos/secrets.nix
+/secrets.nix
