@@ -4,13 +4,17 @@
 
 { pkgs, ... }:
 
-let secrets = import ./secrets.nix;
-in {
-  imports = [ # Include the results of the hardware scan.
+let
+  secrets = import ./secrets.nix;
+in
+{
+  imports = [
+    # Include the results of the hardware scan.
     ./hardware-configuration.nix
   ];
 
   powerManagement.cpuFreqGovernor = "performance";
+
   # Bootloader.
   boot = {
     loader.systemd-boot.enable = true;
@@ -83,8 +87,20 @@ in {
     };
   };
 
-  programs = {
+  console.keyMap = "br-abnt2";
 
+  environment.sessionVariables = {
+    MANPAGER = "most";
+    fish_greeting = "";
+    XCURSOR_THEME = "Breeze";
+    OPENAI_API_KEY = secrets.openaiApiKey;
+    XCURSOR_SIZE = "30";
+    HYPRCURSOR_THEME = "Breeze";
+    HYPRCURSOR_SIZE = 30;
+    QT_QPA_PLATFORMTHEME = "qt6ct";
+  };
+
+  programs = {
     gamescope = {
       enable = true;
       # capSysNice = true;
@@ -135,6 +151,8 @@ in {
   };
 
   security.polkit.enable = true;
+  security.rtkit.enable = true;
+
   services = {
     home-assistant = {
       enable = true;
@@ -168,7 +186,6 @@ in {
       openFirewall = true;
       worldPath =
         "/var/lib/terraria/.local/share/Terraria/Worlds/Vision_of_the_Stooge.wld";
-
     };
     minecraft-server = {
       enable = false;
@@ -232,7 +249,8 @@ in {
               prettytable
               jinja2
             ]);
-        in {
+        in
+        {
           displayName = "Python 3 (SQL enabled)";
           argv = [
             "${pyEnv.interpreter}"
@@ -252,13 +270,14 @@ in {
           rEnv = pkgs.rWrapper.override {
             packages = with pkgs.rPackages; [
               IRkernel # kernel do Jupyter
-              ggplot2 # opcional, muito útil
+              ggplot2 # opcional, muito util
               dplyr # idem
               tidyr
               readr
             ];
           };
-        in {
+        in
+        {
           displayName = "R";
           language = "R";
           argv = [
@@ -270,7 +289,7 @@ in {
             "{connection_file}"
           ];
 
-          # O IRkernel não inclui logos — pode deixar vazio ou remover
+          # O IRkernel nao inclui logos — pode deixar vazio ou remover
         };
         python3-sci = let
           sciEnv = pkgs.python3.withPackages (ps:
@@ -284,7 +303,8 @@ in {
               pandas # opcional, bom para tabelas
               pillow # recomendado p/ alguns backends do matplotlib
             ]);
-        in {
+        in
+        {
           displayName = "Python 3 (SciPy + Matplotlib)";
           argv = [
             "${sciEnv.interpreter}"
@@ -354,24 +374,10 @@ in {
     };
   };
 
-  console.keyMap = "br-abnt2";
-
   # Enable sound with pipewire.
   # sound.enable = true;
   services.pulseaudio.enable = false;
   hardware.bluetooth.enable = true;
-  security.rtkit.enable = true;
-
-  environment.sessionVariables = {
-    MANPAGER = "most";
-    fish_greeting = "";
-    XCURSOR_THEME = "Breeze";
-    OPENAI_API_KEY = secrets.openaiApiKey;
-    XCURSOR_SIZE = "30";
-    HYPRCURSOR_THEME = "Breeze";
-    HYPRCURSOR_SIZE = 30;
-    QT_QPA_PLATFORMTHEME = "qt6ct";
-  };
 
   users.groups.libvirtd.members = [ "ltadeu6" ];
 
@@ -392,9 +398,6 @@ in {
       tor-browser
       texlive.combined.scheme-full
       foliate
-      kitty
-      waybar
-      hyprpaper
       sshfs
       papirus-icon-theme
       trash-cli
@@ -436,9 +439,6 @@ in {
       cartridges
       libvterm
       libgccjit
-      pavucontrol
-      playerctl
-      mpv
       tenacity
       gnome-connections
       jsbeautifier
@@ -480,12 +480,18 @@ in {
     hyfetch
     cacert
     hyprcursor
+    kitty
+    waybar
+    hyprpaper
     dunst
     libnotify
     pulseaudio
     nautilus
     eog
     gnome-calculator
+    pavucontrol
+    playerctl
+    mpv
     qt6Packages.qtwayland
     glib
     gsettings-desktop-schemas
@@ -528,5 +534,4 @@ in {
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "23.11"; # Did you read the comment?
-
 }
