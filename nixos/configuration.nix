@@ -489,6 +489,7 @@ in
     nautilus
     eog
     gnome-calculator
+    lutris
     pavucontrol
     playerctl
     mpv
