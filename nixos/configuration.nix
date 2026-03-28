@@ -4,10 +4,8 @@
 
 { pkgs, ... }:
 
-let
-  secrets = import ./secrets.nix;
-in
-{
+let secrets = import ./secrets.nix;
+in {
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -180,7 +178,7 @@ in
       package = pkgs.mariadb;
     };
     # getty.autologinUser = "ltadeu6";
-    flatpak.enable = true;
+    flatpak = { enable = true; };
     terraria = {
       enable = false;
       openFirewall = true;
@@ -224,8 +222,9 @@ in
       host = "0.0.0.0";
     };
     transmission = {
-      enable = true;
-      home = "/home/ltadeu6/Extra/Transmission/";
+      enable = false;
+      user = "ltadeu6";
+      home = "/home/ltadeu6/Extra/Transmission";
       package = pkgs.transmission_4;
       settings = {
         rpc-bind-address = "0.0.0.0";
@@ -249,8 +248,7 @@ in
               prettytable
               jinja2
             ]);
-        in
-        {
+        in {
           displayName = "Python 3 (SQL enabled)";
           argv = [
             "${pyEnv.interpreter}"
@@ -276,8 +274,7 @@ in
               readr
             ];
           };
-        in
-        {
+        in {
           displayName = "R";
           language = "R";
           argv = [
@@ -303,8 +300,7 @@ in
               pandas # opcional, bom para tabelas
               pillow # recomendado p/ alguns backends do matplotlib
             ]);
-        in
-        {
+        in {
           displayName = "Python 3 (SciPy + Matplotlib)";
           argv = [
             "${sciEnv.interpreter}"
@@ -480,6 +476,7 @@ in
     hyfetch
     cacert
     hyprcursor
+    fragments
     kitty
     waybar
     hyprpaper
@@ -493,10 +490,12 @@ in
     pavucontrol
     playerctl
     mpv
+    protonup-qt
     qt6Packages.qtwayland
     glib
     gsettings-desktop-schemas
     wine64
+    wine
     ((emacsPackagesFor emacs).emacsWithPackages (epkgs: [ epkgs.vterm ]))
     libvterm
     (python3.withPackages (ps: with ps; [ requests ]))
