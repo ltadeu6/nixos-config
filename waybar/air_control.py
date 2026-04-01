@@ -15,14 +15,12 @@ TOKEN_FILE = os.path.expanduser("~/.config/secrets/ha_token")
 STEP = 1
 MIN_TEMP = 18
 MAX_TEMP = 30
-PENDING_TEMP_FILE = os.path.expanduser("~/.cache/waybar_air_pending.json")
-PENDING_MODE_FILE = os.path.expanduser("~/.cache/waybar_air_pending_mode.json")
-PENDING_FAN_FILE = os.path.expanduser("~/.cache/waybar_air_pending_fan.json")
-LAST_MODE_FILE = os.path.expanduser("~/.cache/waybar_air_last_mode.json")
-LAST_TARGET_FILE = os.path.expanduser("~/.cache/waybar_air_last_target.json")
 SEND_DELAY = 3
 PENDING_TTL = 15
 CONFIRM_TTL = 20
+
+CACHE_DIR = os.path.expanduser("~/.cache")
+STATE_FILE = os.path.join(CACHE_DIR, "waybar_air_state.json")
 
 
 def get_token():
@@ -61,6 +59,28 @@ def set_fan_mode(mode):
     )
 
 
+PENDING = {
+    "temp": {
+        "key": "temp",
+        "cast": float,
+        "setter": set_temperature,
+        "after": None,
+    },
+    "mode": {
+        "key": "mode",
+        "cast": str,
+        "setter": set_mode,
+        "after": lambda: schedule("flush"),
+    },
+    "fan": {
+        "key": "fan",
+        "cast": str,
+        "setter": set_fan_mode,
+        "after": None,
+    },
+}
+
+
 def request_json(method, path, payload=None):
     url = f"{HA_URL}{path}"
     data = None
@@ -82,89 +102,117 @@ def request_json(method, path, payload=None):
         return None
 
 
-def read_pending(path):
+def load_json(path):
     try:
         with open(path) as f:
-            data = json.load(f)
-        value = data.get("value")
-        ts = data.get("ts")
-        sent = data.get("sent", False)
-        sent_ts = data.get("sent_ts")
-        if isinstance(value, (int, float, str)) and isinstance(ts, (int, float)):
-            sent_ts_val = None
-            if isinstance(sent_ts, (int, float)):
-                sent_ts_val = float(sent_ts)
-            return {
-                "value": value,
-                "ts": float(ts),
-                "sent": bool(sent),
-                "sent_ts": sent_ts_val,
-            }
+            return json.load(f)
     except FileNotFoundError:
         return None
     except (OSError, ValueError, json.JSONDecodeError):
         return None
-    return None
 
 
-def write_pending(path, value, sent=False, sent_ts=None, ts=None):
+def save_json(path, payload):
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(payload, f)
+
+
+def load_state():
+    data = load_json(STATE_FILE)
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def save_state(state):
+    save_json(STATE_FILE, state)
+
+
+def get_state_section(state, key):
+    section = state.get(key)
+    if isinstance(section, dict):
+        return section
+    return {}
+
+
+def read_pending(key):
+    state = load_state()
+    pending_map = get_state_section(state, "pending")
+    data = pending_map.get(key)
+    if not isinstance(data, dict):
+        return None
+    value = data.get("value")
+    ts = data.get("ts")
+    sent = data.get("sent", False)
+    sent_ts = data.get("sent_ts")
+    if not isinstance(value, (int, float, str)) or not isinstance(ts, (int, float)):
+        return None
+    sent_ts_val = None
+    if isinstance(sent_ts, (int, float)):
+        sent_ts_val = float(sent_ts)
+    return {
+        "value": value,
+        "ts": float(ts),
+        "sent": bool(sent),
+        "sent_ts": sent_ts_val,
+    }
+
+
+def write_pending(key, value, sent=False, sent_ts=None, ts=None):
     if ts is None:
         ts = time.time()
     payload = {"value": value, "ts": float(ts), "sent": bool(sent)}
     if sent_ts is not None:
         payload["sent_ts"] = float(sent_ts)
-    with open(path, "w") as f:
-        json.dump(payload, f)
+    state = load_state()
+    pending_map = get_state_section(state, "pending")
+    pending_map[key] = payload
+    state["pending"] = pending_map
+    save_state(state)
 
 
-def clear_pending(path):
-    try:
-        os.remove(path)
-    except FileNotFoundError:
-        pass
-    except OSError:
-        pass
+def clear_pending(key):
+    state = load_state()
+    pending_map = get_state_section(state, "pending")
+    if key in pending_map:
+        pending_map.pop(key, None)
+        state["pending"] = pending_map
+        save_state(state)
 
 
 def read_last_mode():
-    try:
-        with open(LAST_MODE_FILE) as f:
-            data = json.load(f)
-        mode = data.get("mode")
-        if isinstance(mode, str):
-            return mode
-    except FileNotFoundError:
-        return None
-    except (OSError, ValueError, json.JSONDecodeError):
-        return None
+    state = load_state()
+    last_map = get_state_section(state, "last")
+    mode = last_map.get("mode")
+    if isinstance(mode, str):
+        return mode
     return None
 
 
 def write_last_mode(mode):
-    os.makedirs(os.path.dirname(LAST_MODE_FILE), exist_ok=True)
-    with open(LAST_MODE_FILE, "w") as f:
-        json.dump({"mode": mode}, f)
+    state = load_state()
+    last_map = get_state_section(state, "last")
+    last_map["mode"] = mode
+    state["last"] = last_map
+    save_state(state)
 
 
 def read_last_target():
-    try:
-        with open(LAST_TARGET_FILE) as f:
-            data = json.load(f)
-        value = data.get("value")
-        if isinstance(value, (int, float)):
-            return float(value)
-    except FileNotFoundError:
-        return None
-    except (OSError, ValueError, json.JSONDecodeError):
-        return None
+    state = load_state()
+    last_map = get_state_section(state, "last")
+    value = last_map.get("target")
+    if isinstance(value, (int, float)):
+        return float(value)
     return None
 
 
 def write_last_target(value):
-    os.makedirs(os.path.dirname(LAST_TARGET_FILE), exist_ok=True)
-    with open(LAST_TARGET_FILE, "w") as f:
-        json.dump({"value": float(value)}, f)
+    state = load_state()
+    last_map = get_state_section(state, "last")
+    last_map["target"] = float(value)
+    state["last"] = last_map
+    save_state(state)
 
 
 def pending_active(pending):
@@ -175,45 +223,164 @@ def pending_active(pending):
     return show
 
 
-def display():
+def mode_change_pending(state=None):
+    pending = read_pending(PENDING["mode"]["key"])
+    if not pending:
+        return False
+    if state and state.get("state") == pending.get("value"):
+        return False
+    return bool(pending_active(pending))
+
+
+_MISSING = object()
+
+
+def pending_value(key, cast=None, current_value=_MISSING, preserve_if_mode_pending=False):
+    pending = read_pending(key)
+    if pending is None:
+        return (current_value, None) if current_value is not _MISSING else None
+    value = cast(pending["value"]) if cast else pending["value"]
+    if current_value is not _MISSING:
+        if current_value == value:
+            if preserve_if_mode_pending and mode_change_pending():
+                return value, pending
+            clear_pending(key)
+            return current_value, None
+        if pending_active(pending):
+            return value, pending
+        clear_pending(key)
+        return current_value, None
+    if pending_active(pending):
+        return value
+    clear_pending(key)
+    return None
+
+
+def pending_value_with_current(key, cast, current_value, preserve_if_mode_pending=False):
+    result = pending_value(
+        key,
+        cast,
+        current_value=current_value,
+        preserve_if_mode_pending=preserve_if_mode_pending,
+    )
+    if result is None:
+        return current_value, None
+    return result
+
+
+def get_effective_mode(state):
+    if state:
+        mode = state.get("state")
+    else:
+        mode = None
+    pending = pending_value(PENDING["mode"]["key"], PENDING["mode"]["cast"])
+    return pending if pending is not None else mode
+
+
+def clamp(value, low, high):
+    return max(low, min(high, value))
+
+
+def get_state_attrs():
     state = get_state()
+    if not state:
+        return None, {}
+    return state, state.get("attributes", {})
+
+
+def resolve_current_target(state):
+    current_target = None
+    if state:
+        attrs = state["attributes"]
+        current_target = attrs.get("temperature")
+        if current_target is None:
+            current_target = attrs.get("current_temperature")
+    pending_target = pending_value(PENDING["temp"]["key"], PENDING["temp"]["cast"])
+    if pending_target is not None:
+        current_target = pending_target
+    if current_target is None:
+        current_target = read_last_target()
+    if current_target is None and state:
+        current_target = state["attributes"].get("current_temperature")
+    return current_target
+
+
+def preserve_settings_on_mode_change(state):
+    target = resolve_current_target(state)
+    if isinstance(target, (int, float)) and read_pending(PENDING["temp"]["key"]) is None:
+        write_pending(PENDING["temp"]["key"], float(target), sent=False)
+        schedule("flush")
+    if state:
+        fan_mode = state["attributes"].get("fan_mode")
+        if isinstance(fan_mode, str) and read_pending(PENDING["fan"]["key"]) is None:
+            write_pending(PENDING["fan"]["key"], str(fan_mode), sent=False)
+            schedule("flush-fan")
+
+
+def flush_pending_generic(
+    key, cast, setter, after=None, defer_cmd=None, state=None, force=False
+):
+    if not force and key != PENDING["mode"]["key"] and mode_change_pending(state):
+        if defer_cmd is not None:
+            schedule(defer_cmd)
+        return False
+    pending = read_pending(key)
+    if pending is None:
+        return False
+    ts = pending["ts"]
+    remaining = SEND_DELAY - (time.time() - ts)
+    if remaining > 0:
+        time.sleep(remaining)
+    pending = read_pending(key)
+    if pending is None:
+        return False
+    if pending["ts"] != ts:
+        return False
+    value = cast(pending["value"])
+    setter(value)
+    write_pending(key, value, sent=True, sent_ts=time.time(), ts=ts)
+    if after is not None:
+        after()
+    return True
+
+
+def schedule(cmd):
+    subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), cmd],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def display():
+    state, attrs = get_state_attrs()
     if not state:
         print(json.dumps({"text": "-- - ", "class": "off"}))
         return
     mode = state["state"]
-    attrs = state["attributes"]
 
     current = attrs.get("current_temperature")
     target = attrs.get("temperature")
-    pending_temp = read_pending(PENDING_TEMP_FILE)
-    if pending_temp is not None:
-        pending_temp_value = float(pending_temp["value"])
-        if target == pending_temp_value:
-            clear_pending(PENDING_TEMP_FILE)
-        elif pending_active(pending_temp):
-            target = pending_temp_value
-        else:
-            clear_pending(PENDING_TEMP_FILE)
+    target, _ = pending_value_with_current(
+        PENDING["temp"]["key"],
+        PENDING["temp"]["cast"],
+        target,
+        preserve_if_mode_pending=True,
+    )
     if target is not None:
         write_last_target(target)
 
-    pending_mode = read_pending(PENDING_MODE_FILE)
-    if pending_mode is not None:
-        pending_mode_value = str(pending_mode["value"])
-        if mode == pending_mode_value:
-            clear_pending(PENDING_MODE_FILE)
-        elif pending_active(pending_mode):
-            mode = pending_mode_value
-        else:
-            clear_pending(PENDING_MODE_FILE)
+    mode, _ = pending_value_with_current(
+        PENDING["mode"]["key"], PENDING["mode"]["cast"], mode
+    )
 
-    pending_fan = read_pending(PENDING_FAN_FILE)
-    if pending_fan is not None:
-        current_fan = attrs.get("fan_mode")
-        if current_fan == pending_fan["value"]:
-            clear_pending(PENDING_FAN_FILE)
-        elif not pending_active(pending_fan):
-            clear_pending(PENDING_FAN_FILE)
+    fan_mode = attrs.get("fan_mode")
+    fan_mode, _ = pending_value_with_current(
+        PENDING["fan"]["key"],
+        PENDING["fan"]["cast"],
+        fan_mode,
+        preserve_if_mode_pending=True,
+    )
 
     if current is None:
         current = 0
@@ -236,7 +403,8 @@ def display():
         "dry": ("", "dry"),
         "fan_only": ("󰈐", "fan"),
     }
-    icon, css_class = mode_map.get(mode, ("", "other"))
+    mode_key = mode if isinstance(mode, str) else "unknown"
+    icon, css_class = mode_map.get(mode_key, ("", "other"))
 
     if mode in ("fan_only", "dry"):
         target_text = f"{current:.0f}"
@@ -244,12 +412,9 @@ def display():
         target_text = f"{current:.0f}"
     else:
         target_text = f"{target:.0f}"
-    fan_value = attrs.get("fan_mode")
-    if pending_fan is not None and pending_active(pending_fan):
-        fan_value = pending_fan["value"]
     fan_text = ""
-    if fan_value is not None:
-        fan_text = f"<span size='60%' rise='-1500'>{fan_value}</span>"
+    if fan_mode is not None:
+        fan_text = f"<span size='60%' rise='-1500'>{fan_mode}</span>"
     print(
         json.dumps(
             {
@@ -261,132 +426,86 @@ def display():
 
 
 def change(delta):
-    state = get_state()
-    if state and state.get("state") == "fan_only":
+    state, _ = get_state_attrs()
+    effective_mode = get_effective_mode(state)
+    if effective_mode in ("fan_only", "dry"):
         change_fan(delta)
         return
-    if state:
-        attrs = state["attributes"]
-        current_target = attrs.get("temperature")
-        if current_target is None:
-            current_target = attrs.get("current_temperature")
-    else:
-        current_target = None
-    pending = read_pending(PENDING_TEMP_FILE)
-    if pending is not None and pending_active(pending):
-        current_target = float(pending["value"])
-    elif pending is not None:
-        clear_pending(PENDING_TEMP_FILE)
-    if current_target is None:
-        current_target = read_last_target()
-    if current_target is None and state:
-        current_target = state["attributes"].get("current_temperature")
+    current_target = resolve_current_target(state)
     if current_target is None:
         return
 
-    new_temp = max(MIN_TEMP, min(MAX_TEMP, current_target + delta))
-    write_pending(PENDING_TEMP_FILE, float(new_temp), sent=False)
-    subprocess.Popen(
-        [sys.executable, os.path.abspath(__file__), "flush"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    new_temp = clamp(current_target + delta, MIN_TEMP, MAX_TEMP)
+    write_pending(PENDING["temp"]["key"], float(new_temp), sent=False)
+    schedule("flush")
 
 
 def change_fan(delta):
-    state = get_state()
+    state, attrs = get_state_attrs()
     if not state:
         return
-    attrs = state["attributes"]
     modes = attrs.get("fan_modes")
     current = attrs.get("fan_mode")
     if not modes or current is None:
         return
-    pending = read_pending(PENDING_FAN_FILE)
-    if pending is not None and pending_active(pending):
-        current = pending["value"]
-    elif pending is not None:
-        clear_pending(PENDING_FAN_FILE)
+    pending_fan = pending_value(PENDING["fan"]["key"], PENDING["fan"]["cast"])
+    if pending_fan is not None:
+        current = pending_fan
     try:
         idx = modes.index(current)
     except ValueError:
         idx = 0
     new_idx = (idx + delta) % len(modes)
     if new_idx != idx:
-        write_pending(PENDING_FAN_FILE, modes[new_idx], sent=False)
-        subprocess.Popen(
-            [sys.executable, os.path.abspath(__file__), "flush-fan"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        write_pending(PENDING["fan"]["key"], modes[new_idx], sent=False)
+        schedule("flush-fan")
 
 
 def cycle_mode():
-    state = get_state()
+    state, attrs = get_state_attrs()
     if not state:
         return
-    attrs = state["attributes"]
     modes = attrs.get("hvac_modes") or []
     modes = [m for m in modes if m != "off"]
     if not modes:
         return
-    current = state.get("state")
-    pending = read_pending(PENDING_MODE_FILE)
-    if pending is not None and pending_active(pending):
-        current = pending["value"]
-    elif pending is not None:
-        clear_pending(PENDING_MODE_FILE)
+    current = get_effective_mode(state)
     try:
         idx = modes.index(current)
     except ValueError:
         idx = -1
     new_idx = (idx + 1) % len(modes)
     new_mode = modes[new_idx]
-    write_pending(PENDING_MODE_FILE, new_mode, sent=False)
-    subprocess.Popen(
-        [sys.executable, os.path.abspath(__file__), "flush-mode"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    write_pending(PENDING["mode"]["key"], new_mode, sent=False)
+    preserve_settings_on_mode_change(state)
+    schedule("flush-mode")
 
 
 def toggle_mode():
-    state = get_state()
+    state, attrs = get_state_attrs()
     if not state:
         return
-    attrs = state["attributes"]
     modes = attrs.get("hvac_modes") or []
-    current = state.get("state")
-    pending = read_pending(PENDING_MODE_FILE)
-    if pending is not None and pending_active(pending):
-        current = pending["value"]
-    elif pending is not None:
-        clear_pending(PENDING_MODE_FILE)
+    current = get_effective_mode(state)
     if current == "off":
         last = read_last_mode()
         if last in modes and last != "off":
-            write_pending(PENDING_MODE_FILE, last, sent=False)
-            subprocess.Popen(
-                [sys.executable, os.path.abspath(__file__), "flush-mode"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            write_pending(PENDING["mode"]["key"], last, sent=False)
+            preserve_settings_on_mode_change(state)
+            schedule("flush-mode")
             return
         for m in modes:
             if m != "off":
-                write_pending(PENDING_MODE_FILE, m, sent=False)
-                subprocess.Popen(
-                    [sys.executable, os.path.abspath(__file__), "flush-mode"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                write_pending(PENDING["mode"]["key"], m, sent=False)
+                preserve_settings_on_mode_change(state)
+                schedule("flush-mode")
                 return
     else:
-        write_pending(PENDING_MODE_FILE, "off", sent=False)
-        subprocess.Popen(
-            [sys.executable, os.path.abspath(__file__), "flush-mode"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        clear_pending(PENDING["temp"]["key"])
+        clear_pending(PENDING["fan"]["key"])
+        set_mode("off")
+        write_pending(
+            PENDING["mode"]["key"], "off", sent=True, sent_ts=time.time(), ts=time.time()
         )
 
 
@@ -395,65 +514,54 @@ def cycle_fan():
 
 
 def flush_pending():
-    pending = read_pending(PENDING_TEMP_FILE)
-    if pending is None:
-        return
-    ts = pending["ts"]
-    remaining = SEND_DELAY - (time.time() - ts)
-    if remaining > 0:
-        time.sleep(remaining)
-    pending = read_pending(PENDING_TEMP_FILE)
-    if pending is None:
-        return
-    temp2 = float(pending["value"])
-    ts2 = pending["ts"]
-    if ts2 != ts:
-        return
-    set_temperature(temp2)
-    write_pending(PENDING_TEMP_FILE, float(temp2), sent=True, sent_ts=time.time(), ts=ts2)
+    meta = PENDING["temp"]
+    state, _ = get_state_attrs()
+    flush_pending_generic(
+        meta["key"],
+        meta["cast"],
+        meta["setter"],
+        meta["after"],
+        defer_cmd="flush",
+        state=state,
+    )
 
 
 def flush_mode():
-    pending = read_pending(PENDING_MODE_FILE)
-    if pending is None:
+    meta = PENDING["mode"]
+    sent = flush_pending_generic(
+        meta["key"], meta["cast"], meta["setter"], meta["after"]
+    )
+    if not sent:
         return
-    ts = pending["ts"]
-    remaining = SEND_DELAY - (time.time() - ts)
-    if remaining > 0:
-        time.sleep(remaining)
-    pending = read_pending(PENDING_MODE_FILE)
-    if pending is None:
-        return
-    mode2 = str(pending["value"])
-    ts2 = pending["ts"]
-    if ts2 != ts:
-        return
-    set_mode(mode2)
-    write_pending(PENDING_MODE_FILE, mode2, sent=True, sent_ts=time.time(), ts=ts2)
-    subprocess.Popen(
-        [sys.executable, os.path.abspath(__file__), "flush"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    temp_meta = PENDING["temp"]
+    flush_pending_generic(
+        temp_meta["key"],
+        temp_meta["cast"],
+        temp_meta["setter"],
+        temp_meta["after"],
+        force=True,
+    )
+    fan_meta = PENDING["fan"]
+    flush_pending_generic(
+        fan_meta["key"],
+        fan_meta["cast"],
+        fan_meta["setter"],
+        fan_meta["after"],
+        force=True,
     )
 
 
 def flush_fan():
-    pending = read_pending(PENDING_FAN_FILE)
-    if pending is None:
-        return
-    ts = pending["ts"]
-    remaining = SEND_DELAY - (time.time() - ts)
-    if remaining > 0:
-        time.sleep(remaining)
-    pending = read_pending(PENDING_FAN_FILE)
-    if pending is None:
-        return
-    fan2 = str(pending["value"])
-    ts2 = pending["ts"]
-    if ts2 != ts:
-        return
-    set_fan_mode(fan2)
-    write_pending(PENDING_FAN_FILE, fan2, sent=True, sent_ts=time.time(), ts=ts2)
+    meta = PENDING["fan"]
+    state, _ = get_state_attrs()
+    flush_pending_generic(
+        meta["key"],
+        meta["cast"],
+        meta["setter"],
+        meta["after"],
+        defer_cmd="flush-fan",
+        state=state,
+    )
 
 
 def main():
