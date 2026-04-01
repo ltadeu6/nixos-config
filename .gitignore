@@ -1,2 +1,4 @@
 /nixos/secrets.nix
 /secrets.nix
+__pycache__/
+*.pyc
