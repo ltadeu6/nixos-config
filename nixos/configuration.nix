@@ -26,6 +26,7 @@ in {
     plymouth.enable = true;
     # plymouth.theme = "colorful_loop";
     consoleLogLevel = 0;
+    kernelModules = [ "vhba" ];
     initrd.verbose = false;
     kernelParams = [
       "quiet"
@@ -99,6 +100,7 @@ in {
   };
 
   programs = {
+    cdemu.enable = true;
     gamescope = {
       enable = true;
       # capSysNice = true;
@@ -491,6 +493,7 @@ in {
     playerctl
     mpv
     protonup-qt
+    protontricks
     qt6Packages.qtwayland
     glib
     gsettings-desktop-schemas
