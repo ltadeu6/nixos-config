@@ -180,7 +180,7 @@
     },
     "network": {
         "format": "{icon}",
-        "format-alt": "󰲝 ︁  {ipaddr}",
+        "format-alt": "󰲝 {ipaddr}",
         "format-alt-click": "click-left",
         "format-wifi": " ",
         "format-ethernet": "󰲝",
@@ -189,12 +189,12 @@
     },
     "custom/ac": {
     "exec": "$HOME/nixos-config/waybar/air_control.py",
-    "interval": 1,
+    "interval": 3,
     "return-type": "json",
     "markup": "true",
-    "on-click-right": "$HOME/nixos-config/waybar/air_control.py heat",
-    "on-click": "$HOME/nixos-config/waybar/air_control.py cool",
-    "on-click-middle": "$HOME/nixos-config/waybar/air_control.py off",
+    "on-click": "$HOME/nixos-config/waybar/air_control.py toggle",
+    "on-click-right": "$HOME/nixos-config/waybar/air_control.py cycle-mode",
+    "on-click-middle": "$HOME/nixos-config/waybar/air_control.py cycle-fan",
     "on-scroll-up": "$HOME/nixos-config/waybar/air_control.py up",
     "on-scroll-down": "$HOME/nixos-config/waybar/air_control.py down"
 }

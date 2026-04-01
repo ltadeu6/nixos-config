@@ -24,6 +24,13 @@ Instrucoes para agentes trabalhando neste repositorio.
 - Prefira blocos Nix claros e agrupados por topico.
 - Ao adicionar servicos, habilite apenas o necessario.
 
+## Waybar (AC)
+- `waybar/air_control.py` usa apenas stdlib (`urllib`) para falar com o Home Assistant.
+- Alteracoes de setpoint/modo/fan sao imediatas na UI, com envio real atrasado (debounce) via arquivos em `~/.cache/`.
+- `fan_only` e `dry` mostram sempre a temperatura atual (room) no display.
+- Indicador pequeno de fan speed aparece como subscrito ao lado do icone.
+- `waybar/config` (modulo `custom/ac`): clique alterna on/off, clique direito cicla modos (sem `off`), clique do meio cicla fan; `interval` esta em 3s.
+
 ## Aplicar mudancas
 - Rebuild: `sudo nixos-rebuild switch`
 - Validar sintaxe basica: `nix-instantiate --parse nixos/configuration.nix`
