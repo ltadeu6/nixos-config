@@ -7,6 +7,7 @@ import time
 import subprocess
 import urllib.request
 import urllib.error
+import fcntl
 
 HA_URL = "http://localhost:8123"
 ENTITY = "climate.ar"
@@ -21,6 +22,7 @@ CONFIRM_TTL = 20
 
 CACHE_DIR = os.path.expanduser("~/.cache")
 STATE_FILE = os.path.join(CACHE_DIR, "waybar_air_state.json")
+STATE_LOCK = os.path.join(CACHE_DIR, "waybar_air_state.lock")
 
 
 def get_token():
@@ -117,6 +119,13 @@ def save_json(path, payload):
     with open(path, "w") as f:
         json.dump(payload, f)
 
+def save_json_atomic(path, payload):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp_path = f"{path}.{os.getpid()}.tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(payload, f)
+    os.replace(tmp_path, path)
+
 
 def load_state():
     data = load_json(STATE_FILE)
@@ -126,7 +135,20 @@ def load_state():
 
 
 def save_state(state):
-    save_json(STATE_FILE, state)
+    save_json_atomic(STATE_FILE, state)
+
+
+def update_state(update_fn):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(STATE_LOCK, "w") as lockf:
+        fcntl.flock(lockf, fcntl.LOCK_EX)
+        state = load_state()
+        if not isinstance(state, dict):
+            state = {}
+        new_state = update_fn(state)
+        if new_state is not None:
+            state = new_state
+        save_state(state)
 
 
 def get_state_section(state, key):
@@ -165,20 +187,24 @@ def write_pending(key, value, sent=False, sent_ts=None, ts=None):
     payload = {"value": value, "ts": float(ts), "sent": bool(sent)}
     if sent_ts is not None:
         payload["sent_ts"] = float(sent_ts)
-    state = load_state()
-    pending_map = get_state_section(state, "pending")
-    pending_map[key] = payload
-    state["pending"] = pending_map
-    save_state(state)
+    def apply(state):
+        pending_map = get_state_section(state, "pending")
+        pending_map[key] = payload
+        state["pending"] = pending_map
+        return state
+
+    update_state(apply)
 
 
 def clear_pending(key):
-    state = load_state()
-    pending_map = get_state_section(state, "pending")
-    if key in pending_map:
-        pending_map.pop(key, None)
-        state["pending"] = pending_map
-        save_state(state)
+    def apply(state):
+        pending_map = get_state_section(state, "pending")
+        if key in pending_map:
+            pending_map.pop(key, None)
+            state["pending"] = pending_map
+        return state
+
+    update_state(apply)
 
 
 def read_last_mode():
@@ -191,11 +217,13 @@ def read_last_mode():
 
 
 def write_last_mode(mode):
-    state = load_state()
-    last_map = get_state_section(state, "last")
-    last_map["mode"] = mode
-    state["last"] = last_map
-    save_state(state)
+    def apply(state):
+        last_map = get_state_section(state, "last")
+        last_map["mode"] = mode
+        state["last"] = last_map
+        return state
+
+    update_state(apply)
 
 
 def read_last_target():
@@ -208,11 +236,13 @@ def read_last_target():
 
 
 def write_last_target(value):
-    state = load_state()
-    last_map = get_state_section(state, "last")
-    last_map["target"] = float(value)
-    state["last"] = last_map
-    save_state(state)
+    def apply(state):
+        last_map = get_state_section(state, "last")
+        last_map["target"] = float(value)
+        state["last"] = last_map
+        return state
+
+    update_state(apply)
 
 
 def pending_active(pending):
@@ -322,6 +352,7 @@ def flush_pending_generic(
 ):
     if not force and key != PENDING["mode"]["key"] and mode_change_pending(state):
         if defer_cmd is not None:
+            time.sleep(SEND_DELAY)
             schedule(defer_cmd)
         return False
     pending = read_pending(key)
