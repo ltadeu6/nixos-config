@@ -463,6 +463,12 @@ in {
 
   system.autoUpgrade.enable = true;
 
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
@@ -471,6 +477,7 @@ in {
   # nixpkgs.config.cudaSupport = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.auto-optimise-store = true;
 
   environment.systemPackages = with pkgs; [
     most
