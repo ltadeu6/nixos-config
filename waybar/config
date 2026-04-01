@@ -127,7 +127,7 @@
         },
         "scroll-step": 10,
         "on-click": "pavucontrol",
-        "on-click-right": "./switch_sink.sh",
+        "on-click-right": "$HOME/nixos-config/waybar/switch_sink.sh",
         "ignored-sinks": ["Easy Effects Sink"],
         "tooltip-format": "{icon} {volume}"
     },
@@ -188,14 +188,14 @@
         "tooltip": false
     },
     "custom/ac": {
-    "exec": "./air_control.py",
+    "exec": "$HOME/nixos-config/waybar/air_control.py",
     "interval": 1,
     "return-type": "json",
     "markup": "true",
-    "on-click-right": "./air_control.py heat",
-    "on-click": "./air_control.py cool",
-    "on-click-middle": "./air_control.py off",
-    "on-scroll-up": "./air_control.py up",
-    "on-scroll-down": "./air_control.py down"
+    "on-click-right": "$HOME/nixos-config/waybar/air_control.py heat",
+    "on-click": "$HOME/nixos-config/waybar/air_control.py cool",
+    "on-click-middle": "$HOME/nixos-config/waybar/air_control.py off",
+    "on-scroll-up": "$HOME/nixos-config/waybar/air_control.py up",
+    "on-scroll-down": "$HOME/nixos-config/waybar/air_control.py down"
 }
 }
