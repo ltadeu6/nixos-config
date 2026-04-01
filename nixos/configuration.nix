@@ -154,6 +154,7 @@ in {
   security.rtkit.enable = true;
 
   services = {
+    fstrim.enable = true;
     home-assistant = {
       enable = true;
       openFirewall = true;
