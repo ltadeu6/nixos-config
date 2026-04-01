@@ -127,6 +127,7 @@
         },
         "scroll-step": 10,
         "on-click": "pavucontrol",
+        "on-click-right": "./switch_sink.sh",
         "ignored-sinks": ["Easy Effects Sink"],
         "tooltip-format": "{icon} {volume}"
     },
