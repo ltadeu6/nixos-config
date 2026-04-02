@@ -117,6 +117,10 @@
         "format-bluetooth": "{icon}",
         "format-muted": "",
         "format-icons": {
+            "alsa_output.pci-0000_05_00.6.analog-stereo": "󰋋",
+            "analog-output-lineout": "",
+            "analog-output-headphones": "",
+            "Ryzen HD Audio Controller": "",
             // "headphone": "",
             // "hands-free": "",
             // "headset": "󱡒",
