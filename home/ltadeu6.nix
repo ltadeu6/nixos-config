@@ -73,7 +73,6 @@
     wl-clipboard
     nodejs
     texlab
-    texliveTeTeX
     gnome-boxes
     android-studio
     sageWithDoc
