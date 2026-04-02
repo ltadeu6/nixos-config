@@ -436,7 +436,7 @@
 
   environment.systemPackages = with pkgs; [
     most
-    agenix
+    agenix.packages.${pkgs.system}.default
     # mangohud
     hyfetch
     cacert

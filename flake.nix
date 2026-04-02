@@ -16,6 +16,7 @@
     in {
       nixosConfigurations.Nixos = nixpkgs.lib.nixosSystem {
         inherit system;
+        specialArgs = { inherit agenix; };
         modules = [
           ./nixos/configuration.nix
           agenix.nixosModules.default
