@@ -330,5 +330,17 @@
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
   };
 
+  programs.openclaw = {
+    documents = ../openclaw/documents;
+    config = {
+      models.providers.openai.apiKey = {
+        source = "env";
+        provider = "default";
+        id = "OPENAI_API_KEY";
+      };
+    };
+    instances.default.enable = true;
+  };
+
   programs.home-manager.enable = true;
 }
