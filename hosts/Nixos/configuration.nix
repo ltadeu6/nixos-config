@@ -11,21 +11,21 @@
 
   age = {
     identityPaths = [ "/home/ltadeu6/.ssh/id_ed25519" ];
-    secrets =
-      { }
-      // lib.optionalAttrs (builtins.pathExists ../../secrets/openai_api_key.age) {
+    secrets = { } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/openai_api_key.age) {
         openai_api_key.file = ../../secrets/openai_api_key.age;
-      }
-      // lib.optionalAttrs (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
-        minecraft_rcon_password.file = ../../secrets/minecraft_rcon_password.age;
-      }
-      // lib.optionalAttrs (builtins.pathExists ../../secrets/syncthing_pixel_id.age) {
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
+        minecraft_rcon_password.file =
+          ../../secrets/minecraft_rcon_password.age;
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/syncthing_pixel_id.age) {
         syncthing_pixel_id.file = ../../secrets/syncthing_pixel_id.age;
-      }
-      // lib.optionalAttrs (builtins.pathExists ../../secrets/syncthing_tv_id.age) {
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/syncthing_tv_id.age) {
         syncthing_tv_id.file = ../../secrets/syncthing_tv_id.age;
-      }
-      // lib.optionalAttrs (builtins.pathExists ../../secrets/wireguard_private_key.age) {
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/wireguard_private_key.age) {
         wireguard_private_key.file = ../../secrets/wireguard_private_key.age;
       };
   };
@@ -44,6 +44,7 @@
     plymouth.enable = true;
     # plymouth.theme = "colorful_loop";
     consoleLogLevel = 0;
+    kernelModules = [ "vhba" ];
     initrd.verbose = false;
     kernelParams = [
       "quiet"
@@ -104,6 +105,7 @@
   };
 
   programs = {
+    cdemu.enable = true;
 
     gamescope = {
       enable = true;
@@ -119,6 +121,11 @@
     };
     fish = {
       enable = true;
+      shellInit = ''
+        if test -r /run/agenix/openai_api_key
+          set -gx OPENAI_API_KEY (cat /run/agenix/openai_api_key)
+        end
+      '';
       shellAliases = {
         la = "exa --icons --git";
         ls = "exa --icons --git";
@@ -156,6 +163,7 @@
 
   security.polkit.enable = true;
   services = {
+    fstrim.enable = true;
     home-assistant = {
       enable = true;
       openFirewall = true;
@@ -230,7 +238,8 @@
       host = "0.0.0.0";
     };
     transmission = {
-      enable = true;
+      enable = false;
+      user = "ltadeu6";
       home = "/home/ltadeu6/Extra/Transmission/";
       package = pkgs.transmission_4;
       settings = {
@@ -355,15 +364,12 @@
       dataDir = "/home/ltadeu6"; # Default folder for new synced folders
       configDir = "/home/ltadeu6/.config/syncthing";
       settings = {
-        devices =
-          { }
-          // lib.optionalAttrs (config.services.syncthing.enable
-            && config.age.secrets ? syncthing_pixel_id) {
-              "Pixel" = {
-                id = builtins.readFile config.age.secrets.syncthing_pixel_id.path;
-              };
-            }
-          // lib.optionalAttrs (config.services.syncthing.enable
+        devices = { } // lib.optionalAttrs (config.services.syncthing.enable
+          && config.age.secrets ? syncthing_pixel_id) {
+            "Pixel" = {
+              id = builtins.readFile config.age.secrets.syncthing_pixel_id.path;
+            };
+          } // lib.optionalAttrs (config.services.syncthing.enable
             && config.age.secrets ? syncthing_tv_id) {
               "TV" = {
                 id = builtins.readFile config.age.secrets.syncthing_tv_id.path;
@@ -397,6 +403,12 @@
 
   environment.sessionVariables = { };
 
+  environment.etc."profile.d/openai.sh".text = ''
+    if [ -r /run/agenix/openai_api_key ]; then
+      export OPENAI_API_KEY="$(cat /run/agenix/openai_api_key)"
+    fi
+  '';
+
   users.groups.libvirtd.members = [ "ltadeu6" ];
 
   users.users.ltadeu6 = {
@@ -416,6 +428,12 @@
 
   system.autoUpgrade.enable = true;
 
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
@@ -424,6 +442,7 @@
   # nixpkgs.config.cudaSupport = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.auto-optimise-store = true;
 
   environment.systemPackages = with pkgs; [
     most
@@ -431,6 +450,11 @@
     # mangohud
     hyfetch
     cacert
+    fragments
+    kitty
+    lutris
+    protonup-qt
+    protontricks
     hyprcursor
     dunst
     libnotify
@@ -441,6 +465,7 @@
     qt6Packages.qtwayland
     glib
     gsettings-desktop-schemas
+    wine
     wine64
     ((emacsPackagesFor emacs).emacsWithPackages (epkgs: [ epkgs.vterm ]))
     libvterm
