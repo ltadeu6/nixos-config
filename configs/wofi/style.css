@@ -35,10 +35,6 @@ window {
     padding: 5px;
 }
 
-#scroll {
-    display: none;
-}
-
 #text {
     border-radius: 15px;
     margin: 5px;
