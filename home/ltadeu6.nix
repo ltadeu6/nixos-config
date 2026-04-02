@@ -152,6 +152,19 @@
     };
   };
 
+  xdg.userDirs = {
+    enable = true;
+    createDirectories = true;
+    desktop = "$HOME/Área de trabalho";
+    download = "$HOME/Downloads";
+    templates = "$HOME/Modelos";
+    publicShare = "$HOME/Público";
+    documents = "$HOME/Documentos";
+    music = "$HOME/Músicas";
+    pictures = "$HOME/Imagens";
+    videos = "$HOME/Vídeos";
+  };
+
   home.sessionVariables = {
     MANPAGER = "most";
     XCURSOR_THEME = "Breeze";
@@ -235,7 +248,25 @@
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".source = ../configs/hypr/hyprpaper.conf;
 
-    ".config/hyfetch.json".source = ../configs/hyfetch/hyfetch.json;
+    ".config/hyfetch.json".text = builtins.toJSON {
+      preset = "voidgirl";
+      mode = "rgb";
+      light_dark = "dark";
+      lightness = 0.65;
+      color_align = {
+        mode = "custom";
+        custom_colors = {
+          "1" = 2;
+          "2" = 0;
+        };
+        fore_back = [ ];
+      };
+      backend = "neofetch";
+      args = null;
+      distro = null;
+      pride_month_shown = [ ];
+      pride_month_disable = false;
+    };
 
     ".config/waybar/config".source = ../configs/waybar/config;
     ".config/waybar/style.css".source = ../configs/waybar/style.css;
