@@ -442,6 +442,7 @@
       Type = "oneshot";
       User = "ltadeu6";
       WorkingDirectory = "/home/ltadeu6/nixos-config";
+      Path = [ pkgs.git pkgs.nix ];
       Environment = [
         "GIT_AUTHOR_NAME=auto-upgrade"
         "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
