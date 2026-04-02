@@ -87,29 +87,29 @@
       end
     '';
 
-    ".config/hypr/hyprland.conf".source = ../hypr/hyprland.conf;
-    ".config/hypr/hyprpaper.conf".source = ../hypr/hyprpaper.conf;
+    ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
+    ".config/hypr/hyprpaper.conf".source = ../configs/hypr/hyprpaper.conf;
 
-    ".config/waybar/config".source = ../waybar/config;
-    ".config/waybar/style.css".source = ../waybar/style.css;
-    ".config/waybar/dracula.css".source = ../waybar/dracula.css;
+    ".config/waybar/config".source = ../configs/waybar/config;
+    ".config/waybar/style.css".source = ../configs/waybar/style.css;
+    ".config/waybar/dracula.css".source = ../configs/waybar/dracula.css;
 
     ".config/waybar/air_control.py" = {
-      source = ../waybar/air_control.py;
+      source = ../configs/waybar/air_control.py;
       executable = true;
     };
     ".config/waybar/launch.sh" = {
-      source = ../waybar/launch.sh;
+      source = ../configs/waybar/launch.sh;
       executable = true;
     };
     ".config/waybar/switch_sink.sh" = {
-      source = ../waybar/switch_sink.sh;
+      source = ../configs/waybar/switch_sink.sh;
       executable = true;
     };
 
-    ".doom.d/config.el".source = ../doom/config.el;
-    ".doom.d/init.el".source = ../doom/init.el;
-    ".doom.d/packages.el".source = ../doom/packages.el;
+    ".doom.d/config.el".source = ../configs/doom/config.el;
+    ".doom.d/init.el".source = ../configs/doom/init.el;
+    ".doom.d/packages.el".source = ../configs/doom/packages.el;
   };
 
   programs.home-manager.enable = true;

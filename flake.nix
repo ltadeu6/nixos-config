@@ -18,7 +18,7 @@
         inherit system;
         specialArgs = { inherit agenix; };
         modules = [
-          ./nixos/configuration.nix
+          ./hosts/Nixos/configuration.nix
           agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
