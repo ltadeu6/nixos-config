@@ -86,7 +86,6 @@
 
   home.file = {
     ".config/kitty/kitty.conf".source = ../configs/kitty/kitty.conf;
-    ".config/kitty/colors-kitty.conf".source = ../configs/kitty/colors-kitty.conf;
 
     ".config/dunst/dunstrc".source = ../configs/dunst/dunstrc;
 
