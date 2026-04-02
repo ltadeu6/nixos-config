@@ -19,6 +19,9 @@
     tor-browser
     texlive.combined.scheme-full
     foliate
+    kitty
+    waybar
+    hyprpaper
     sshfs
     papirus-icon-theme
     trash-cli
@@ -58,6 +61,9 @@
     cartridges
     libvterm
     libgccjit
+    pavucontrol
+    playerctl
+    mpv
     tenacity
     gnome-connections
     jsbeautifier
