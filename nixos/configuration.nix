@@ -89,14 +89,7 @@ in {
   console.keyMap = "br-abnt2";
 
   environment.sessionVariables = {
-    MANPAGER = "most";
-    fish_greeting = "";
-    XCURSOR_THEME = "Breeze";
     OPENAI_API_KEY = secrets.openaiApiKey;
-    XCURSOR_SIZE = "30";
-    HYPRCURSOR_THEME = "Breeze";
-    HYPRCURSOR_SIZE = 30;
-    QT_QPA_PLATFORMTHEME = "qt6ct";
   };
 
   programs = {
@@ -393,73 +386,6 @@ in {
       "storage"
     ];
     shell = pkgs.fish;
-    packages = with pkgs; [
-      tor-browser
-      texlive.combined.scheme-full
-      foliate
-      sshfs
-      papirus-icon-theme
-      trash-cli
-      libreoffice
-      eza
-      wofi
-      killall
-      python3
-      python3Packages.requests
-      cmake
-      gnumake
-      ripgrep
-      fd
-      ffmpeg
-      nixfmt-classic
-      editorconfig-core-c
-      # spotify
-      man
-      hyprpicker
-      networkmanager
-      prismlauncher
-      gimp
-      inkscape
-      # (blender.override { cudaSupport = true; })
-      blender
-      discord-ptb
-      vscode
-      direnv
-      unzip
-      codex
-      zip
-      file-roller
-      clang-tools
-      libxml2
-      gdtoolkit_4
-      bat
-      alpaca
-      ispell
-      cartridges
-      libvterm
-      libgccjit
-      tenacity
-      gnome-connections
-      jsbeautifier
-      tmux
-      stylelint
-      html-tidy
-      shfmt
-      shellcheck
-      black
-      isort
-      pipenv
-      jq
-      wl-clipboard
-      nodejs
-      texlab
-      texliveTeTeX
-      gnome-boxes
-      android-studio
-      sageWithDoc
-      evince
-      poppler-utils
-    ];
   };
 
   system.autoUpgrade.enable = true;
