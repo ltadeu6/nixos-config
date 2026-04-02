@@ -426,7 +426,20 @@
     shell = pkgs.fish;
   };
 
-  system.autoUpgrade.enable = true;
+  system.autoUpgrade = {
+    enable = true;
+    flake = "/home/ltadeu6/nixos-config";
+    dates = "02:00";
+    randomizedDelaySec = "45min";
+    flags = [
+      "--print-build-logs"
+      "--commit-lock-file"
+      "--update-input"
+      "nixpkgs"
+      "--update-input"
+      "home-manager"
+    ];
+  };
 
   nix.gc = {
     automatic = true;
