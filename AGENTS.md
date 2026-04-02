@@ -9,7 +9,7 @@ Instrucoes para agentes trabalhando neste repositorio.
 ## Estrutura
 - `hosts/Nixos/configuration.nix`: configuracao principal do sistema.
 - `hosts/Nixos/hardware-configuration.nix`: gerado pelo NixOS; edite somente se solicitado.
-- `nixos/secrets.nix`: legado (nao usado mais).
+- `secrets/secrets.nix`: regras do agenix (sem segredos em texto puro).
 - `secrets/secrets.nix`: regras do agenix (sem segredos em texto puro).
 - `configs/hypr/hyprland.conf`: configuracao do Hyprland.
 - `configs/hypr/hyprpaper.conf`: wallpaper do Hyprpaper.

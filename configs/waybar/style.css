@@ -1,0 +1,135 @@
+@import "./dracula.css";
+
+* {
+    font-family: FreeMono;
+    font-size: 17px;
+    font-weight: 600;
+    border: none;
+}
+
+#waybar {
+    background: transparent;
+}
+
+#workspaces {
+    color: @teal;
+}
+
+#workspaces button {
+    color: @teal;
+    margin: 0 0.8rem 0 0.4rem;
+    padding: 0;
+    /* border-bottom-width: 1px; */
+}
+#workspaces button:hover {
+    box-shadow: none;
+    text-shadow: none;
+    background: none;
+    transition: none;
+}
+
+#workspaces button.empty {
+    color: @surface2;
+}
+
+#workspaces button.visible {
+    color: @red;
+}
+
+#custom-lock,
+#custom-kde,
+#custom-restart,
+#custom-exit,
+#custom-sleep,
+#custom-poweroff,
+#mpris,
+#battery,
+#pulseaudio,
+#bluetooth,
+#backlight,
+#network {
+    padding: 0 1rem;
+}
+#mpris {
+    font-family: "GohuFont 11 Nerd Font Mono";
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+#cava {
+    font-family: "GohuFont 11 Nerd Font Mono";
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: @teal;
+    margin: 0 5px 0 10px;
+}
+
+#custom-sleep,
+#battery,
+#network {
+    color: @green;
+}
+
+#custom-exit,
+#mpris,
+#pulseaudio,
+#backlight {
+    color: @yellow;
+}
+
+#custom-kde,
+#custom-lock,
+#bluetooth {
+    color: @teal;
+}
+
+#custom-restart,
+#custom-poweroff {
+    color: @red;
+}
+
+#clock,
+#custom-ac {
+    color: @text;
+    color: @yellow;
+    font-family: "GohuFont 11 Nerd Font Mono";
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+#battery.warning:not(.charging) {
+    color: @red;
+}
+
+/* .modules-left, */
+/* .modules-center, */
+/* .modules-right { */
+/*     border: double 3px transparent; */
+/*     border-radius: 10px; */
+/*     background-image: */
+/*         linear-gradient(rgba(12, 10, 32, 1), rgba(12, 10, 32, 1)), */
+/*         linear-gradient( */
+/*             to bottom right, */
+/*             rgba(254, 4, 117, 0.93), */
+/*             rgba(32, 241, 253, 0.93) */
+/*         ); */
+/*     background-origin: border-box; */
+/*     background-clip: padding-box, border-box; */
+/*     padding: 0 1rem; */
+/*     margin: 0 20px; */
+/* } */
+
+.modules-left,
+.modules-center,
+.modules-right {
+    border: solid 3px;
+    border-color: @lavender;
+    border-radius: 10px;
+    padding: 0 1rem;
+    background: @surface0;
+}
+
+.modules-right,
+.modules-left {
+    margin: 0 20px;
+}

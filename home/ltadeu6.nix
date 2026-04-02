@@ -107,9 +107,9 @@
       executable = true;
     };
 
-    ".doom.d/config.el".source = ../configs/doom/config.el;
-    ".doom.d/init.el".source = ../configs/doom/init.el;
-    ".doom.d/packages.el".source = ../configs/doom/packages.el;
+    ".config/doom/config.el".source = ../configs/doom/config.el;
+    ".config/doom/init.el".source = ../configs/doom/init.el;
+    ".config/doom/packages.el".source = ../configs/doom/packages.el;
   };
 
   programs.home-manager.enable = true;
