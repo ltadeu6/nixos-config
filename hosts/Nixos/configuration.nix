@@ -440,6 +440,7 @@
     description = "Update flake.lock and commit";
     serviceConfig = {
       Type = "oneshot";
+      User = "ltadeu6";
       WorkingDirectory = "/home/ltadeu6/nixos-config";
       Environment = [
         "GIT_AUTHOR_NAME=auto-upgrade"
