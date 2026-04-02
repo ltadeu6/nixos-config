@@ -109,6 +109,49 @@
     };
   };
 
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "x-scheme-handler/discord-402572971681644545" = [ "discord-402572971681644545.desktop" ];
+      "application/pdf" = [ "org.gnome.Evince.desktop" ];
+      "x-scheme-handler/magnet" = [ "userapp-transmission-gtk-B3E3L2.desktop" ];
+      "x-scheme-handler/http" = [ "firefox.desktop" ];
+      "x-scheme-handler/https" = [ "firefox.desktop" ];
+      "x-scheme-handler/chrome" = [ "firefox.desktop" ];
+      "text/html" = [ "firefox.desktop" ];
+      "application/x-extension-htm" = [ "firefox.desktop" ];
+      "application/x-extension-html" = [ "firefox.desktop" ];
+      "application/x-extension-shtml" = [ "firefox.desktop" ];
+      "application/xhtml+xml" = [ "firefox.desktop" ];
+      "application/x-extension-xhtml" = [ "firefox.desktop" ];
+      "application/x-extension-xht" = [ "firefox.desktop" ];
+      "image/png" = [ "org.gnome.eog.desktop" ];
+      "image/svg+xml" = [ "org.inkscape.Inkscape.desktop" ];
+      "image/jpeg" = [ "org.gnome.eog.desktop" ];
+      "video/x-matroska" = [ "mpv.desktop" ];
+    };
+    associations.added = {
+      "application/pdf" = [ "org.gnome.Evince.desktop" ];
+      "x-scheme-handler/magnet" = [ "userapp-transmission-gtk-B3E3L2.desktop" ];
+      "x-scheme-handler/http" = [ "firefox.desktop" ];
+      "x-scheme-handler/https" = [ "firefox.desktop" ];
+      "x-scheme-handler/chrome" = [ "firefox.desktop" ];
+      "text/html" = [ "firefox.desktop" ];
+      "application/x-extension-htm" = [ "firefox.desktop" ];
+      "application/x-extension-html" = [ "firefox.desktop" ];
+      "application/x-extension-shtml" = [ "firefox.desktop" ];
+      "application/xhtml+xml" = [ "firefox.desktop" ];
+      "application/x-extension-xhtml" = [ "firefox.desktop" ];
+      "application/x-extension-xht" = [ "firefox.desktop" ];
+      "image/png" = [ "org.gnome.eog.desktop" ];
+      "application/x-partial-download" = [ "mpv.desktop" ];
+      "image/svg+xml" = [ "org.inkscape.Inkscape.desktop" ];
+      "text/plain" = [ "emacs.desktop" ];
+      "image/jpeg" = [ "org.gnome.eog.desktop" ];
+      "video/x-matroska" = [ "mpv.desktop" ];
+    };
+  };
+
   home.sessionVariables = {
     MANPAGER = "most";
     XCURSOR_THEME = "Breeze";
