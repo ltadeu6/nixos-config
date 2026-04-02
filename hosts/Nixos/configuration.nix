@@ -433,12 +433,34 @@
     randomizedDelaySec = "45min";
     flags = [
       "--print-build-logs"
-      "--commit-lock-file"
-      "--update-input"
-      "nixpkgs"
-      "--update-input"
-      "home-manager"
     ];
+  };
+
+  systemd.services."nix-flake-update" = {
+    description = "Update flake.lock and commit";
+    serviceConfig = {
+      Type = "oneshot";
+      WorkingDirectory = "/home/ltadeu6/nixos-config";
+      Environment = [
+        "GIT_AUTHOR_NAME=auto-upgrade"
+        "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
+        "GIT_COMMITTER_NAME=auto-upgrade"
+        "GIT_COMMITTER_EMAIL=auto-upgrade@localhost"
+      ];
+    };
+    script = ''
+      set -euo pipefail
+      /run/current-system/sw/bin/nix flake update --commit-lock-file
+    '';
+  };
+
+  systemd.timers."nix-flake-update" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "02:00";
+      RandomizedDelaySec = "45min";
+      Persistent = true;
+    };
   };
 
   nix.gc = {
