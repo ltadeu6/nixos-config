@@ -24,6 +24,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "hm-bak";
             home-manager.users.ltadeu6 = import ./home/ltadeu6.nix;
           }
         ];
