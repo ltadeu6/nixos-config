@@ -82,6 +82,12 @@
   ];
 
   home.file = {
+    ".config/fish/conf.d/agenix-openai.fish".text = ''
+      if test -r /run/agenix/openai_api_key
+        set -gx OPENAI_API_KEY (cat /run/agenix/openai_api_key)
+      end
+    '';
+
     ".config/hypr/hyprland.conf".source = ../hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".source = ../hypr/hyprpaper.conf;
 

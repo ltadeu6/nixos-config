@@ -2,14 +2,31 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
-let secrets = import ./secrets.nix;
-in {
+{
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
   ];
+
+  age = {
+    identityPaths = [ "/home/ltadeu6/.ssh/id_ed25519" ];
+    secrets =
+      { }
+      // lib.optionalAttrs (builtins.pathExists ../secrets/openai_api_key.age) {
+        openai_api_key.file = ../secrets/openai_api_key.age;
+      }
+      // lib.optionalAttrs (builtins.pathExists ../secrets/minecraft_rcon_password.age) {
+        minecraft_rcon_password.file = ../secrets/minecraft_rcon_password.age;
+      }
+      // lib.optionalAttrs (builtins.pathExists ../secrets/syncthing_pixel_id.age) {
+        syncthing_pixel_id.file = ../secrets/syncthing_pixel_id.age;
+      }
+      // lib.optionalAttrs (builtins.pathExists ../secrets/syncthing_tv_id.age) {
+        syncthing_tv_id.file = ../secrets/syncthing_tv_id.age;
+      };
+  };
 
   powerManagement.cpuFreqGovernor = "performance";
 
@@ -58,11 +75,11 @@ in {
     #   wg0 = {
     #     ips = [ "10.0.0.2/24" ];
     #     listenPort = 51820;
-    #     privateKey = secrets.wireguard.privateKey;
+    #     privateKey = builtins.readFile config.age.secrets.wireguard_private_key.path;
     #     peers = [{
-    #       publicKey = secrets.wireguard.peerPublicKey;
+    #       publicKey = (import ../secrets/secrets.nix).wireguard.peerPublicKey;
     #       allowedIPs = [ "10.0.0.1" ];
-    #       endpoint = secrets.wireguard.endpoint;
+    #       endpoint = (import ../secrets/secrets.nix).wireguard.endpoint;
     #       persistentKeepalive = 25;
     #     }];
     #   };
@@ -88,9 +105,7 @@ in {
 
   console.keyMap = "br-abnt2";
 
-  environment.sessionVariables = {
-    OPENAI_API_KEY = secrets.openaiApiKey;
-  };
+  environment.sessionVariables = { };
 
   programs = {
     cdemu.enable = true;
@@ -196,9 +211,12 @@ in {
         max-players = 20;
         white-list = false;
         enable-rcon = true;
-        "rcon.password" = secrets.minecraft.rconPassword;
         online-mode = false;
-      };
+      } // lib.optionalAttrs (config.services.minecraft-server.enable
+        && config.age.secrets ? minecraft_rcon_password) {
+          "rcon.password" =
+            builtins.readFile config.age.secrets.minecraft_rcon_password.path;
+        };
     };
 
     xserver = {
@@ -344,10 +362,20 @@ in {
       dataDir = "/home/ltadeu6"; # Default folder for new synced folders
       configDir = "/home/ltadeu6/.config/syncthing";
       settings = {
-        devices = {
-          "Pixel" = { id = secrets.syncthing.devices.pixelId; };
-          "TV" = { id = secrets.syncthing.devices.tvId; };
-        };
+        devices =
+          { }
+          // lib.optionalAttrs (config.services.syncthing.enable
+            && config.age.secrets ? syncthing_pixel_id) {
+              "Pixel" = {
+                id = builtins.readFile config.age.secrets.syncthing_pixel_id.path;
+              };
+            }
+          // lib.optionalAttrs (config.services.syncthing.enable
+            && config.age.secrets ? syncthing_tv_id) {
+              "TV" = {
+                id = builtins.readFile config.age.secrets.syncthing_tv_id.path;
+              };
+            };
         folders = {
           "RetroArch" = { # Name of folder in Syncthing, also the folder ID
             path =
@@ -408,6 +436,7 @@ in {
 
   environment.systemPackages = with pkgs; [
     most
+    agenix
     # mangohud
     hyfetch
     cacert
