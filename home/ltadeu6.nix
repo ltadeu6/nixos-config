@@ -7,7 +7,6 @@
 
   home.sessionVariables = {
     MANPAGER = "most";
-    fish_greeting = "";
     XCURSOR_THEME = "Breeze";
     XCURSOR_SIZE = "30";
     HYPRCURSOR_THEME = "Breeze";
@@ -86,8 +85,15 @@
   ];
 
   home.file = {
+    ".config/kitty/kitty.conf".source = ../configs/kitty/kitty.conf;
+    ".config/kitty/colors-kitty.conf".source = ../configs/kitty/colors-kitty.conf;
+
+    ".config/dunst/dunstrc".source = ../configs/dunst/dunstrc;
+
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".source = ../configs/hypr/hyprpaper.conf;
+
+    ".config/hyfetch.json".source = ../configs/hyfetch/hyfetch.json;
 
     ".config/waybar/config".source = ../configs/waybar/config;
     ".config/waybar/style.css".source = ../configs/waybar/style.css;
@@ -109,6 +115,11 @@
     ".config/doom/config.el".source = ../configs/doom/config.el;
     ".config/doom/init.el".source = ../configs/doom/init.el;
     ".config/doom/packages.el".source = ../configs/doom/packages.el;
+
+    ".config/wofi/config".source = ../configs/wofi/config;
+    ".config/wofi/style.css".source = ../configs/wofi/style.css;
+    ".config/wofi/menu".source = ../configs/wofi/menu;
+    ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
   };
 
   programs.home-manager.enable = true;

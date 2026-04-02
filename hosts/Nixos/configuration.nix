@@ -121,6 +121,9 @@
     };
     fish = {
       enable = true;
+      interactiveShellInit = ''
+        set -g fish_greeting
+      '';
       shellInit = ''
         if test -r /run/agenix/openai_api_key
           set -gx OPENAI_API_KEY (cat /run/agenix/openai_api_key)
