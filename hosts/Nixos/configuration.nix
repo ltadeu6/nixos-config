@@ -442,7 +442,7 @@
       Type = "oneshot";
       User = "ltadeu6";
       WorkingDirectory = "/home/ltadeu6/nixos-config";
-      Path = [ pkgs.git pkgs.nix ];
+      Path = [ pkgs.git pkgs.nix pkgs.coreutils ];
       Environment = [
         "GIT_AUTHOR_NAME=auto-upgrade"
         "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
@@ -452,6 +452,7 @@
     };
     script = ''
       set -euo pipefail
+      export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:/run/current-system/sw/bin"
       /run/current-system/sw/bin/nix flake update --commit-lock-file
     '';
   };
