@@ -251,7 +251,7 @@
       acceleration = "cuda";
       host = "[::]";
       loadModels = [
-        "llama3.1:8b"
+        "qwen2.5:3b"
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";
