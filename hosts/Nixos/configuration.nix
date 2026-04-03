@@ -20,6 +20,14 @@
           mode = "0400";
         };
       } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/openclaw_gateway_token.age) {
+        openclaw_gateway_token = {
+          file = ../../secrets/openclaw_gateway_token.age;
+          owner = "ltadeu6";
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
           ../../secrets/minecraft_rcon_password.age;
@@ -133,6 +141,9 @@
         if test -r /run/agenix/openai_api_key
           set -gx OPENAI_API_KEY (cat /run/agenix/openai_api_key)
         end
+        if test -r /run/agenix/openclaw_gateway_token
+          set -gx OPENCLAW_GATEWAY_TOKEN (cat /run/agenix/openclaw_gateway_token)
+        end
       '';
       shellAliases = {
         la = "exa --icons --git";
@@ -240,7 +251,7 @@
       acceleration = "cuda";
       host = "[::]";
       loadModels = [
-        "gemma4:e2b"
+        "llama3.1:8b"
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";
@@ -418,6 +429,11 @@
   environment.etc."profile.d/openai.sh".text = ''
     if [ -r /run/agenix/openai_api_key ]; then
       export OPENAI_API_KEY="$(cat /run/agenix/openai_api_key)"
+    fi
+  '';
+  environment.etc."profile.d/openclaw.sh".text = ''
+    if [ -r /run/agenix/openclaw_gateway_token ]; then
+      export OPENCLAW_GATEWAY_TOKEN="$(cat /run/agenix/openclaw_gateway_token)"
     fi
   '';
 

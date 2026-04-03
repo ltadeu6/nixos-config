@@ -331,15 +331,33 @@
   };
 
   programs.openclaw = {
+    enable = true;
     documents = ../openclaw/documents;
-    config = {
-      models.providers.openai.apiKey = {
-        source = "env";
-        provider = "default";
-        id = "OPENAI_API_KEY";
+    instances.default = {
+      enable = true;
+      config = {
+        gateway.mode = "local";
+        gateway.auth.mode = "token";
+        gateway.auth.token = {
+          source = "env";
+          provider = "default";
+          id = "OPENCLAW_GATEWAY_TOKEN";
+        };
+        gateway.remote.token = {
+          source = "env";
+          provider = "default";
+          id = "OPENCLAW_GATEWAY_TOKEN";
+        };
+
+        agents.defaults.model.primary = "ollama/llama3.1:8b";
+        models.providers.ollama = {
+          baseUrl = "http://127.0.0.1:11434";
+          api = "ollama";
+          apiKey = "ollama-local";
+          models = [ ];
+        };
       };
     };
-    instances.default.enable = true;
   };
 
   programs.home-manager.enable = true;
