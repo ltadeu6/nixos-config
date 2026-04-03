@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   home.username = "ltadeu6";
@@ -359,6 +359,20 @@
       };
     };
   };
+
+  home.activation.openclawGatewayEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    set -euo pipefail
+    token_file="/run/agenix/openclaw_gateway_token"
+    env_file="$HOME/.config/openclaw/gateway.env"
+    if [ -r "$token_file" ]; then
+      mkdir -p "$(dirname "$env_file")"
+      umask 177
+      printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$(cat "$token_file")" > "$env_file"
+    fi
+  '';
+
+  systemd.user.services.openclaw-gateway.Service.EnvironmentFile =
+    "${config.home.homeDirectory}/.config/openclaw/gateway.env";
 
   home.file.".openclaw/openclaw.json".force = true;
 
