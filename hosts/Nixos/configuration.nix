@@ -494,6 +494,25 @@
     };
   };
 
+  systemd.services.flatpak-update = {
+    description = "Update Flatpak apps";
+    serviceConfig = {
+      Type = "oneshot";
+    };
+    script = ''
+      ${pkgs.flatpak}/bin/flatpak update -y --noninteractive
+    '';
+  };
+
+  systemd.timers.flatpak-update = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      RandomizedDelaySec = "1h";
+      Persistent = true;
+    };
+  };
+
   nix.gc = {
     automatic = true;
     dates = "weekly";
