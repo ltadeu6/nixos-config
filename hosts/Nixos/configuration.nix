@@ -13,7 +13,12 @@
     identityPaths = [ "/home/ltadeu6/.ssh/id_ed25519" ];
     secrets = { } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/openai_api_key.age) {
-        openai_api_key.file = ../../secrets/openai_api_key.age;
+        openai_api_key = {
+          file = ../../secrets/openai_api_key.age;
+          owner = "ltadeu6";
+          group = "users";
+          mode = "0400";
+        };
       } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
@@ -231,13 +236,17 @@
       # defined in `/etc/nixos/configuration.nix' has been renamed to `services.displayManager.gdm.enable'.
     };
     ollama = {
-      enable = false;
+      enable = true;
       acceleration = "cuda";
       host = "[::]";
+      loadModels = [
+        "gemma4:e2b"
+      ];
+      syncModels = true;
       # listenAddress = "10.0.0.2:11434";
     };
     open-webui = {
-      enable = false;
+      enable = true;
       host = "0.0.0.0";
     };
     transmission = {
