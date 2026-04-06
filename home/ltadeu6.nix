@@ -371,8 +371,11 @@
     fi
   '';
 
-  systemd.user.services.openclaw-gateway.Service.EnvironmentFile =
-    "${config.home.homeDirectory}/.config/openclaw/gateway.env";
+  systemd.user.services.openclaw-gateway = {
+    Service.EnvironmentFile =
+      "${config.home.homeDirectory}/.config/openclaw/gateway.env";
+    Install.WantedBy = [ "default.target" ];
+  };
 
   home.file.".openclaw/openclaw.json".force = true;
 

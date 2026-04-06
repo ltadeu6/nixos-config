@@ -24,6 +24,7 @@ Instrucoes para agentes trabalhando neste repositorio.
 - Nao imprimir segredos, tokens ou chaves.
 - Prefira blocos Nix claros e agrupados por topico.
 - Ao adicionar servicos, habilite apenas o necessario.
+- Faca mudancas pequenas e simples para evitar complexidade.
 
 ## Waybar (AC)
 - `configs/waybar/air_control.py` usa apenas stdlib (`urllib`) para falar com o Home Assistant.
