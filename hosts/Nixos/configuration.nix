@@ -4,7 +4,44 @@
 
 { config, pkgs, lib, agenix, ... }:
 
-{
+let
+  tf2XrandrPrimaryFix = pkgs.writeShellScriptBin "tf2-xrandr-primary-fix" ''
+    set -euo pipefail
+
+    if [ -z "''${DISPLAY:-}" ]; then
+      exit 0
+    fi
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}"
+    lock_path="$runtime_dir/tf2-xrandr-primary-fix.$UID.lock"
+    mkdir -p "$runtime_dir" 2>/dev/null || true
+
+    exec 9>"$lock_path"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      exit 0
+    fi
+
+    XRANDR="${pkgs.xorg.xrandr}/bin/xrandr"
+    AWK="${pkgs.gawk}/bin/awk"
+
+    pick_connected() {
+      prefix="$1"
+      "$XRANDR" --query | "$AWK" -v p="$prefix" '
+        $2 == "connected" && $1 ~ ("^" p "(-[0-9]+)+$|^" p "[0-9]+$") { print $1; exit }
+      '
+    }
+
+    sleep 15
+
+    for _ in 1 2 3 4 5; do
+      dp="$(pick_connected "DP" || true)"
+      if [ -n "$dp" ]; then
+        "$XRANDR" --output "$dp" --primary --auto >/dev/null 2>&1 && exit 0
+      fi
+      sleep 2
+    done
+  '';
+in {
   imports = [ # Include the results of the hardware scan.
     ./hardware-configuration.nix
   ];
@@ -207,6 +244,9 @@
     };
     dbus.enable = true;
     displayManager.gdm.enable = true;
+    displayManager.sessionCommands = lib.mkAfter ''
+      ${tf2XrandrPrimaryFix}/bin/tf2-xrandr-primary-fix &
+    '';
     # Optional but recommended if using Nautilus or Thunar
     gvfs.enable = true;
     gnome.gnome-keyring.enable = true;
