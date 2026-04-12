@@ -5,7 +5,7 @@
 { config, pkgs, lib, agenix, ... }:
 
 let
-  tf2XrandrPrimaryFix = pkgs.writeShellScriptBin "tf2-xrandr-primary-fix" ''
+  xrandrPrimaryFix = pkgs.writeShellScript "xrandr-primary-fix" ''
     set -euo pipefail
 
     if [ -z "''${DISPLAY:-}" ]; then
@@ -13,7 +13,7 @@ let
     fi
 
     runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}"
-    lock_path="$runtime_dir/tf2-xrandr-primary-fix.$UID.lock"
+    lock_path="$runtime_dir/xrandr-primary-fix.$UID.lock"
     mkdir -p "$runtime_dir" 2>/dev/null || true
 
     exec 9>"$lock_path"
@@ -290,9 +290,6 @@ in {
       # desktopManager.gnome.enable = true;
       # evaluation warning: The option `services.xserver.displayManager.gdm.enable'
       # defined in `/etc/nixos/configuration.nix' has been renamed to `services.displayManager.gdm.enable'.
-      displayManager.sessionCommands = lib.mkAfter ''
-        ${tf2XrandrPrimaryFix}/bin/tf2-xrandr-primary-fix &
-      '';
     };
     ollama = {
       enable = true;
@@ -577,6 +574,16 @@ in {
   systemd.services."autovt@tty1".enable = false;
 
   nixpkgs.config.allowUnfree = true;
+
+  systemd.user.services.xrandr-primary-fix = {
+    description = "Fix primary display via xrandr after login";
+    wantedBy = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = xrandrPrimaryFix;
+    };
+  };
 
   # nixpkgs.config.cudaSupport = true;
 
