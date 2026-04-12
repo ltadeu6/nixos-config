@@ -43,6 +43,14 @@
       };
   };
 
+  nix.settings = {
+    # CUDA builds are heavy; use a binary cache to avoid local compilation.
+    substituters = lib.mkAfter [ "https://cache.nixos-cuda.org" ];
+    trusted-public-keys = lib.mkAfter [
+      "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+    ];
+  };
+
   powerManagement.cpuFreqGovernor = "performance";
   # Bootloader.
   boot = {
@@ -248,10 +256,16 @@
     };
     ollama = {
       enable = true;
+      # Nixpkgs' plain `ollama` is typically CPU-only; use the CUDA variant on NVIDIA.
+      package = pkgs.unstable.ollama-cuda;
       acceleration = "cuda";
       host = "[::]";
+      environmentVariables = {
+        # Lower default context to keep KV cache smaller (faster + more likely to stay on GPU).
+        OLLAMA_CONTEXT_LENGTH = "8192";
+      };
       loadModels = [
-        "qwen2.5:3b"
+        "gemma4:e4b"
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";

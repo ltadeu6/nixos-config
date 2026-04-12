@@ -349,7 +349,7 @@
           id = "OPENCLAW_GATEWAY_TOKEN";
         };
 
-        agents.defaults.model.primary = "ollama/qwen2.5:3b";
+        agents.defaults.model.primary = "ollama/gemma4:e4b";
         models.providers.ollama = {
           baseUrl = "http://127.0.0.1:11434";
           api = "ollama";
