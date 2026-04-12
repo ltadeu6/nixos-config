@@ -244,9 +244,6 @@ in {
     };
     dbus.enable = true;
     displayManager.gdm.enable = true;
-    displayManager.sessionCommands = lib.mkAfter ''
-      ${tf2XrandrPrimaryFix}/bin/tf2-xrandr-primary-fix &
-    '';
     # Optional but recommended if using Nautilus or Thunar
     gvfs.enable = true;
     gnome.gnome-keyring.enable = true;
@@ -293,6 +290,9 @@ in {
       # desktopManager.gnome.enable = true;
       # evaluation warning: The option `services.xserver.displayManager.gdm.enable'
       # defined in `/etc/nixos/configuration.nix' has been renamed to `services.displayManager.gdm.enable'.
+      displayManager.sessionCommands = lib.mkAfter ''
+        ${tf2XrandrPrimaryFix}/bin/tf2-xrandr-primary-fix &
+      '';
     };
     ollama = {
       enable = true;
