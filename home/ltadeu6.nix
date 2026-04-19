@@ -331,7 +331,7 @@
 
         case "$status" in
           Playing)
-            printf ' %s\n' "$text"
+            printf ' %s\n' "$text"
             ;;
           Paused)
             printf ' %s\n' "$text"
@@ -406,6 +406,7 @@
     enable = true;
     settings.global = {
       backend = "pulseaudio";
+      device_name = "Nixos Desktop";
       use_mpris = true;
     };
   };
