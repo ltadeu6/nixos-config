@@ -242,7 +242,7 @@
     vscode
     direnv
     unzip
-    codex
+    unstable.codex
     zip
     file-roller
     clang-tools
