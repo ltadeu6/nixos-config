@@ -15,6 +15,7 @@
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, agenix, nix-openclaw, ... }:
     let
       system = "x86_64-linux";
+      enableOpenClaw = false;
     in {
       nixosConfigurations.Nixos = nixpkgs.lib.nixosSystem {
         inherit system;
@@ -26,6 +27,12 @@
             nixpkgs.overlays = [
               nix-openclaw.overlays.default
               (final: prev: {
+                openclaw = prev.openclaw.overrideAttrs (_: {
+                  OPENCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL = "1";
+                });
+                "openclaw-gateway" = prev."openclaw-gateway".overrideAttrs (_: {
+                  OPENCLAW_DISABLE_BUNDLED_PLUGIN_POSTINSTALL = "1";
+                });
                 unstable = import nixpkgs-unstable {
                   inherit system;
                   config = prev.config;
@@ -39,10 +46,14 @@
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "hm-bak";
             home-manager.users.ltadeu6 = {
-              imports = [
-                nix-openclaw.homeManagerModules.openclaw
-                ./home/ltadeu6.nix
-              ];
+              imports =
+                [
+                  ./home/ltadeu6.nix
+                ]
+                ++ nixpkgs.lib.optionals enableOpenClaw [
+                  nix-openclaw.homeManagerModules.openclaw
+                  ./home/openclaw.nix
+                ];
             };
           }
         ];

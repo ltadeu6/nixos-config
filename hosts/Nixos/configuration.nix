@@ -479,11 +479,11 @@
 
   systemd.services."nix-flake-update" = {
     description = "Update flake.lock and commit";
+    path = [ pkgs.git pkgs.nix pkgs.coreutils ];
     serviceConfig = {
       Type = "oneshot";
       User = "ltadeu6";
       WorkingDirectory = "/home/ltadeu6/nixos-config";
-      Path = [ pkgs.git pkgs.nix pkgs.coreutils ];
       Environment = [
         "GIT_AUTHOR_NAME=auto-upgrade"
         "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
@@ -494,7 +494,34 @@
     script = ''
       set -euo pipefail
       export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:/run/current-system/sw/bin"
+
+      repo_status="$(git status --porcelain=v1 --untracked-files=normal)"
+      relevant_status="$(printf '%s\n' "$repo_status" | ${pkgs.gnugrep}/bin/grep -vE '^[ MARCUD?!]{2} flake\.lock$' || true)"
+      if [ -n "$relevant_status" ]; then
+        echo "Skipping flake update: repository has local changes"
+        exit 0
+      fi
+
+      backup=""
+      cleanup() {
+        if [ -n "$backup" ] && [ -f "$backup" ] && [ ! -f flake.lock ]; then
+          mv "$backup" flake.lock
+        fi
+      }
+      trap cleanup EXIT
+
+      if [ -f flake.lock ] && [ ! -w flake.lock ]; then
+        backup="$(mktemp)"
+        cp flake.lock "$backup"
+        rm -f flake.lock
+      fi
+
       /run/current-system/sw/bin/nix flake update --commit-lock-file
+
+      if [ -n "$backup" ] && [ -f "$backup" ]; then
+        rm -f "$backup"
+      fi
+      trap - EXIT
     '';
   };
 
