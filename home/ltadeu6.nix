@@ -269,6 +269,8 @@
     isort
     pipenv
     jq
+    grim
+    slurp
     wl-clipboard
     nodejs
     texlab
@@ -282,6 +284,20 @@
   home.file = {
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".source = ../configs/hypr/hyprpaper.conf;
+    ".config/hypr/scripts/screenshot-active-window.sh" = {
+      executable = true;
+      text = ''
+        #!/usr/bin/env sh
+        set -eu
+
+        GEOMETRY="$(
+          hyprctl activewindow -j \
+            | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"'
+        )"
+
+        grim -g "$GEOMETRY" - | wl-copy --type image/png
+      '';
+    };
 
     ".config/hyfetch.json".text = builtins.toJSON {
       preset = "voidgirl";
