@@ -151,16 +151,16 @@
     defaultApplications = {
       "x-scheme-handler/discord-402572971681644545" = [ "discord-402572971681644545.desktop" ];
       "application/pdf" = [ "org.gnome.Evince.desktop" ];
-      "x-scheme-handler/http" = [ "app.zen_browser.zen.desktop" ];
-      "x-scheme-handler/https" = [ "app.zen_browser.zen.desktop" ];
-      "x-scheme-handler/chrome" = [ "app.zen_browser.zen.desktop" ];
-      "text/html" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-htm" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-html" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-shtml" = [ "app.zen_browser.zen.desktop" ];
-      "application/xhtml+xml" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-xhtml" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-xht" = [ "app.zen_browser.zen.desktop" ];
+      "x-scheme-handler/http" = [ "zen.desktop" ];
+      "x-scheme-handler/https" = [ "zen.desktop" ];
+      "x-scheme-handler/chrome" = [ "zen.desktop" ];
+      "text/html" = [ "zen.desktop" ];
+      "application/x-extension-htm" = [ "zen.desktop" ];
+      "application/x-extension-html" = [ "zen.desktop" ];
+      "application/x-extension-shtml" = [ "zen.desktop" ];
+      "application/xhtml+xml" = [ "zen.desktop" ];
+      "application/x-extension-xhtml" = [ "zen.desktop" ];
+      "application/x-extension-xht" = [ "zen.desktop" ];
       "image/png" = [ "org.gnome.eog.desktop" ];
       "image/svg+xml" = [ "org.inkscape.Inkscape.desktop" ];
       "image/jpeg" = [ "org.gnome.eog.desktop" ];
@@ -168,16 +168,16 @@
     };
     associations.added = {
       "application/pdf" = [ "org.gnome.Evince.desktop" ];
-      "x-scheme-handler/http" = [ "app.zen_browser.zen.desktop" ];
-      "x-scheme-handler/https" = [ "app.zen_browser.zen.desktop" ];
-      "x-scheme-handler/chrome" = [ "app.zen_browser.zen.desktop" ];
-      "text/html" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-htm" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-html" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-shtml" = [ "app.zen_browser.zen.desktop" ];
-      "application/xhtml+xml" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-xhtml" = [ "app.zen_browser.zen.desktop" ];
-      "application/x-extension-xht" = [ "app.zen_browser.zen.desktop" ];
+      "x-scheme-handler/http" = [ "zen.desktop" ];
+      "x-scheme-handler/https" = [ "zen.desktop" ];
+      "x-scheme-handler/chrome" = [ "zen.desktop" ];
+      "text/html" = [ "zen.desktop" ];
+      "application/x-extension-htm" = [ "zen.desktop" ];
+      "application/x-extension-html" = [ "zen.desktop" ];
+      "application/x-extension-shtml" = [ "zen.desktop" ];
+      "application/xhtml+xml" = [ "zen.desktop" ];
+      "application/x-extension-xhtml" = [ "zen.desktop" ];
+      "application/x-extension-xht" = [ "zen.desktop" ];
       "image/png" = [ "org.gnome.eog.desktop" ];
       "application/x-partial-download" = [ "mpv.desktop" ];
       "image/svg+xml" = [ "org.inkscape.Inkscape.desktop" ];
@@ -368,6 +368,72 @@
       printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$(cat "$token_file")" > "$env_file"
     fi
   '';
+
+  home.activation.importZenFlatpakProfile =
+    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      set -euo pipefail
+      src_dir="$HOME/.var/app/app.zen_browser.zen/.zen"
+      dst_dir="$HOME/.zen"
+      tmp_dir="$HOME/.zen.hm-import"
+      preferred_profile="ajei92g8.Default (release)"
+
+      if [ -e "$dst_dir/profiles.ini" ] || [ ! -d "$src_dir" ]; then
+        :
+      else
+        rm -rf "$tmp_dir"
+        cp -a "$src_dir" "$tmp_dir"
+        find "$tmp_dir" \( -name lock -o -name .parentlock \) -delete
+        mv "$tmp_dir" "$dst_dir"
+      fi
+
+      if [ -d "$dst_dir/$preferred_profile" ]; then
+        python3 - "$dst_dir" "$preferred_profile" <<'PY'
+import configparser
+import sys
+from pathlib import Path
+
+base = Path(sys.argv[1])
+preferred = sys.argv[2]
+
+profiles_ini = base / "profiles.ini"
+if profiles_ini.exists():
+    parser = configparser.RawConfigParser()
+    parser.optionxform = str
+    parser.read(profiles_ini)
+    for section in parser.sections():
+        if not section.startswith("Profile"):
+            continue
+        if parser.has_option(section, "Path"):
+            path = parser.get(section, "Path")
+            if path == preferred:
+                parser.set(section, "Default", "1")
+            elif parser.has_option(section, "Default"):
+                parser.remove_option(section, "Default")
+    with profiles_ini.open("w") as f:
+        parser.write(f, space_around_delimiters=False)
+
+    install_id = None
+    for section in parser.sections():
+        if section.startswith("Install"):
+            install_id = section.removeprefix("Install")
+            break
+
+    installs_ini = base / "installs.ini"
+    installs = configparser.RawConfigParser()
+    installs.optionxform = str
+    if installs_ini.exists():
+        installs.read(installs_ini)
+    if install_id is None:
+        install_id = "2953CB39A2589173"
+    if not installs.has_section(install_id):
+        installs.add_section(install_id)
+    installs.set(install_id, "Default", preferred)
+    installs.set(install_id, "Locked", "1")
+    with installs_ini.open("w") as f:
+        installs.write(f, space_around_delimiters=False)
+PY
+      fi
+    '';
 
   services.spotifyd = {
     enable = true;

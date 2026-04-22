@@ -9,17 +9,21 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     agenix.url = "github:ryantm/agenix";
+    zen-browser = {
+      url = "github:youwen5/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-openclaw.url = "github:openclaw/nix-openclaw";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, agenix, nix-openclaw, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, agenix, zen-browser, nix-openclaw, ... }:
     let
       system = "x86_64-linux";
       enableOpenClaw = false;
     in {
       nixosConfigurations.Nixos = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit agenix; };
+        specialArgs = { inherit agenix zen-browser; };
         modules = [
           ./hosts/Nixos/configuration.nix
           agenix.nixosModules.default

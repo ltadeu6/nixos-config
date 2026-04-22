@@ -2,10 +2,42 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, agenix, ... }:
+{ config, pkgs, lib, agenix, zen-browser, ... }:
 let
   username = "ltadeu6";
   homeDir = "/home/${username}";
+  zenExtension = shortId: guid: {
+    name = guid;
+    value = {
+      install_url =
+        "https://addons.mozilla.org/en-US/firefox/downloads/latest/${shortId}/latest.xpi";
+      installation_mode = "normal_installed";
+    };
+  };
+  zenBrowserPackage = pkgs.wrapFirefox
+    zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.zen-browser-unwrapped
+    {
+      extraPrefs = lib.concatLines (lib.mapAttrsToList
+        (name: value:
+          ''lockPref(${lib.strings.toJSON name}, ${lib.strings.toJSON value});'')
+        {
+          "extensions.autoDisableScopes" = 0;
+          "extensions.pocket.enabled" = false;
+        });
+
+      extraPolicies = {
+        DisableAppUpdate = true;
+        DisableTelemetry = true;
+        ExtensionSettings = builtins.listToAttrs [
+          (zenExtension "brazilian-portuguese-dictionary"
+            "pt-BR@dictionaries.addons.mozilla.org")
+          (zenExtension "ublock-origin" "uBlock0@raymondhill.net")
+          (zenExtension "sponsorblock" "sponsorBlocker@ajay.app")
+          (zenExtension "proton-vpn-firefox-extension" "vpn@proton.ch")
+          (zenExtension "darkreader" "addon@darkreader.org")
+        ];
+      };
+    };
 in {
   imports = [ # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -799,6 +831,7 @@ in {
   environment.systemPackages = with pkgs; [
     most
     agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    zenBrowserPackage
     # mangohud
     hyfetch
     cacert
