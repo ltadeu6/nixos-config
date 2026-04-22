@@ -437,6 +437,275 @@
   hardware.uinput.enable = true;
   security.rtkit.enable = true;
 
+  environment.etc."antimicrox/controller-mouse.amgp".text = ''
+<?xml version="1.0" encoding="UTF-8"?>
+    <gamecontroller configversion="19" appversion="3.5.1">
+      <sdlname>Controller Mouse</sdlname>
+      <uniqueID>controller-mouse-default</uniqueID>
+      <profilename>Desktop Mouse</profilename>
+      <stickAxisAssociation index="1" xAxis="1" yAxis="2"/>
+      <stickAxisAssociation index="2" xAxis="3" yAxis="4"/>
+      <sets>
+        <set index="1">
+          <name>Desktop Mouse</name>
+          <stick index="1">
+            <deadZone>8000</deadZone>
+            <stickbutton index="1">
+              <mousespeedx>0</mousespeedx>
+              <mousespeedy>-24</mousespeedy>
+              <mousemode>cursor</mousemode>
+              <mouseacceleration>precision</mouseacceleration>
+              <slots>
+                <slot>
+                  <code>1</code>
+                  <mode>mousemovement</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="3">
+              <mousespeedx>24</mousespeedx>
+              <mousespeedy>0</mousespeedy>
+              <mousemode>cursor</mousemode>
+              <mouseacceleration>precision</mouseacceleration>
+              <slots>
+                <slot>
+                  <code>4</code>
+                  <mode>mousemovement</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="5">
+              <mousespeedx>0</mousespeedx>
+              <mousespeedy>24</mousespeedy>
+              <mousemode>cursor</mousemode>
+              <mouseacceleration>precision</mouseacceleration>
+              <slots>
+                <slot>
+                  <code>2</code>
+                  <mode>mousemovement</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="7">
+              <mousespeedx>-24</mousespeedx>
+              <mousespeedy>0</mousespeedy>
+              <mousemode>cursor</mousemode>
+              <mouseacceleration>precision</mouseacceleration>
+              <slots>
+                <slot>
+                  <code>3</code>
+                  <mode>mousemovement</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+          </stick>
+          <stick index="2">
+            <deadZone>9000</deadZone>
+            <stickbutton index="1">
+              <wheelspeedy>18</wheelspeedy>
+              <slots>
+                <slot>
+                  <code>4</code>
+                  <mode>mousebutton</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="3">
+              <wheelspeedx>12</wheelspeedx>
+              <slots>
+                <slot>
+                  <code>7</code>
+                  <mode>mousebutton</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="5">
+              <wheelspeedy>18</wheelspeedy>
+              <slots>
+                <slot>
+                  <code>5</code>
+                  <mode>mousebutton</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+            <stickbutton index="7">
+              <wheelspeedx>12</wheelspeedx>
+              <slots>
+                <slot>
+                  <code>6</code>
+                  <mode>mousebutton</mode>
+                </slot>
+              </slots>
+            </stickbutton>
+          </stick>
+          <button index="1">
+            <slots>
+              <slot>
+                <code>1</code>
+                <mode>mousebutton</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="2">
+            <slots>
+              <slot>
+                <code>3</code>
+                <mode>mousebutton</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="3">
+            <slots>
+              <slot>
+                <code>2</code>
+                <mode>mousebutton</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="4">
+            <slots>
+              <slot>
+                <code>0x46</code>
+                <mode>keyboard</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="5">
+            <slots>
+              <slot>
+                <path>/run/current-system/sw/bin/hyprctl</path>
+                <arguments>dispatch workspace previous</arguments>
+                <mode>execute</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="6">
+            <slots>
+              <slot>
+                <code>0x49</code>
+                <mode>keyboard</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="10">
+            <slots>
+              <slot>
+                <path>/run/current-system/sw/bin/hyprctl</path>
+                <arguments>dispatch workspace -1</arguments>
+                <mode>execute</mode>
+              </slot>
+            </slots>
+          </button>
+          <button index="11">
+            <slots>
+              <slot>
+                <path>/run/current-system/sw/bin/hyprctl</path>
+                <arguments>dispatch workspace +1</arguments>
+                <mode>execute</mode>
+              </slot>
+            </slots>
+          </button>
+      <button index="7">
+        <slots>
+          <slot>
+            <path>/etc/antimicrox/player-toggle.sh</path>
+            <mode>execute</mode>
+          </slot>
+        </slots>
+      </button>
+      <button index="8">
+        <slots>
+          <slot>
+            <path>/etc/antimicrox/disable-controller.sh</path>
+            <mode>execute</mode>
+          </slot>
+        </slots>
+      </button>
+      <button index="9">
+        <slots>
+          <slot>
+            <path>/run/current-system/sw/bin/hyprctl</path>
+            <arguments>dispatch killactive</arguments>
+            <mode>execute</mode>
+          </slot>
+        </slots>
+      </button>
+  <dpad index="1">
+    <mode>four-way</mode>
+        <dpadbutton index="1">
+          <slots>
+            <slot>
+              <code>0x01000013</code>
+              <mode>keyboard</mode>
+            </slot>
+          </slots>
+        </dpadbutton>
+        <dpadbutton index="2">
+          <slots>
+            <slot>
+              <code>0x01000014</code>
+              <mode>keyboard</mode>
+            </slot>
+          </slots>
+        </dpadbutton>
+        <dpadbutton index="4">
+          <slots>
+            <slot>
+              <code>0x01000015</code>
+              <mode>keyboard</mode>
+            </slot>
+          </slots>
+        </dpadbutton>
+        <dpadbutton index="8">
+          <slots>
+            <slot>
+              <code>0x01000012</code>
+              <mode>keyboard</mode>
+            </slot>
+          </slots>
+        </dpadbutton>
+      </dpad>
+          <trigger index="5">
+            <triggerbutton index="2">
+              <slots>
+                <slot>
+                  <path>/run/current-system/sw/bin/hyprctl</path>
+                  <arguments>dispatch focusmonitor -1</arguments>
+                  <mode>execute</mode>
+                </slot>
+              </slots>
+            </triggerbutton>
+          </trigger>
+          <trigger index="6">
+            <triggerbutton index="2">
+              <slots>
+                <slot>
+                  <path>/run/current-system/sw/bin/hyprctl</path>
+                  <arguments>dispatch focusmonitor +1</arguments>
+                  <mode>execute</mode>
+                </slot>
+              </slots>
+            </triggerbutton>
+          </trigger>
+        </set>
+      </sets>
+    </gamecontroller>
+  '';
+  environment.etc."antimicrox/player-toggle.sh" = {
+    mode = "0755";
+    text = ''
+      #!/bin/sh
+      exec ${pkgs.playerctl}/bin/playerctl play-pause
+    '';
+  };
+  environment.etc."antimicrox/disable-controller.sh" = {
+    mode = "0755";
+    text = ''
+      #!/bin/sh
+      exec ${pkgs.antimicrox}/bin/antimicrox --unload
+    '';
+  };
+
   environment.sessionVariables = { };
 
   environment.etc."profile.d/openai.sh".text = ''
