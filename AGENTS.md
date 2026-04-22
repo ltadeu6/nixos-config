@@ -1,42 +1,623 @@
 # AGENTS.md
 
-Instrucoes para agentes trabalhando neste repositorio.
+Guia operacional para agentes trabalhando neste repositorio.
 
-## Escopo
-- Este repo guarda configuracoes do NixOS e componentes relacionados.
-- Priorize mudancas simples, pequenas e revisaveis.
+Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualize este documento junto.
 
-## Estrutura
-- `hosts/Nixos/configuration.nix`: configuracao principal do sistema.
-- `hosts/Nixos/hardware-configuration.nix`: gerado pelo NixOS; edite somente se solicitado.
-- `secrets/secrets.nix`: regras do agenix (sem segredos em texto puro).
-- `secrets/secrets.nix`: regras do agenix (sem segredos em texto puro).
-- `configs/hypr/hyprland.conf`: configuracao do Hyprland.
-- `configs/hypr/hyprpaper.conf`: wallpaper do Hyprpaper.
-- `configs/doom/config.el`: configuracao do Doom Emacs (edite este arquivo).
-- `configs/doom/config.org`: atualmente nao esta funcionando; nao usar como fonte.
-- `configs/doom/init.el`: modulos do Doom Emacs.
-- `configs/doom/packages.el`: pacotes adicionais do Doom Emacs.
-- `configs/doom/custom.el`: customizacoes do Emacs (gerado).
+## Objetivo do repo
 
-## Boas praticas
-- Evite alterar `hardware-configuration.nix` sem pedido explicito.
-- Nao imprimir segredos, tokens ou chaves.
-- Prefira blocos Nix claros e agrupados por topico.
-- Ao adicionar servicos, habilite apenas o necessario.
-- Faca mudancas pequenas e simples para evitar complexidade.
+- Este repo contem a configuracao pessoal de NixOS e Home Manager da maquina `Nixos`.
+- O setup e especifico para o usuario `ltadeu6` e para o host atual; nao trate este repo como template generico sem adaptar usuario, host, mounts, rede e segredos.
+- O flake principal gera apenas `nixosConfigurations.Nixos`.
+- O Home Manager esta embutido no modulo NixOS; nao existe fluxo separado de `home-manager switch`.
 
-## Waybar (AC)
-- `configs/waybar/air_control.py` usa apenas stdlib (`urllib`) para falar com o Home Assistant.
-- Alteracoes de setpoint/modo/fan sao imediatas na UI, com envio real atrasado (debounce) via arquivos em `~/.cache/`.
-- `fan_only` e `dry` mostram sempre a temperatura atual (room) no display.
-- Indicador pequeno de fan speed aparece como subscrito ao lado do icone.
-- `configs/waybar/config` (modulo `custom/ac`): clique alterna on/off, clique direito cicla modos (sem `off`), clique do meio cicla fan; `interval` esta em 3s.
+## Regras gerais para agentes
 
-## Aplicar mudancas
-- Rebuild: `sudo nixos-rebuild switch --flake .#Nixos`
-- Validar sintaxe basica: `nix-instantiate --parse hosts/Nixos/configuration.nix`
+- Priorize mudancas pequenas, simples e revisaveis.
+- Nao edite `hosts/Nixos/hardware-configuration.nix` sem pedido explicito.
+- Nao imprima segredos, tokens, chaves, conteudo de arquivos `.age` ou valores vindos de `/run/agenix/*`.
+- Prefira editar a fonte de verdade declarativa, nao o arquivo gerado em `~/.config`, `/etc` ou `/run`.
+- Se um comportamento e gerado por Home Manager ou NixOS, altere o modulo que gera o arquivo, nao o arquivo final.
+- Ao adicionar servicos, habilite apenas o necessario e documente dependencias novas neste arquivo.
+- Antes de remover um arquivo de `configs/`, confirme se ele ainda e referenciado por `home/ltadeu6.nix` ou `hosts/Nixos/configuration.nix`.
+
+## Mapa rapido do repo
+
+- `flake.nix`: entrada principal do flake, inputs e wiring dos modulos.
+- `flake.lock`: lockfile dos inputs do flake.
+- `hosts/Nixos/configuration.nix`: modulo principal do sistema.
+- `hosts/Nixos/hardware-configuration.nix`: hardware, filesystem e driver de video; gerado pelo NixOS.
+- `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
+- `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
+- `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
+- `configs/waybar/`: configs e scripts do Waybar.
+- `configs/doom/`: configuracao do Doom Emacs versionada no repo.
+- `configs/wofi/`: configuracao e tema do launcher Wofi.
+- `secrets/secrets.nix`: regras do agenix.
+- `secrets/*.age`: segredos criptografados.
+- `openclaw/documents/`: documentos consumidos pelo modulo opcional do OpenClaw.
+- `.codex/`: metadata local de ferramentas/agentes; nao faz parte da configuracao do sistema.
+- `README.md`: resumo humano do repo; o `AGENTS.md` deve ser mais preciso para trabalho automatizado.
+
+## Inputs do flake e dependencias externas
+
+### Inputs declarados em `flake.nix`
+
+- `nixpkgs`: canal principal `nixos-25.11`.
+- `nixpkgs-unstable`: canal `nixos-unstable`, exposto via overlay como `pkgs.unstable`.
+- `home-manager`: `release-25.11`, seguindo o `nixpkgs` principal.
+- `agenix`: gerenciamento de segredos.
+- `nix-openclaw`: overlay e modulo opcional do OpenClaw.
+
+### Como o flake e montado hoje
+
+- O sistema alvo e `x86_64-linux`.
+- A flag local `enableOpenClaw` esta `false` em `flake.nix`.
+- Mesmo com `home/openclaw.nix` e `openclaw/documents/` no repo, eles nao entram na avaliacao enquanto `enableOpenClaw` continuar `false`.
+- O overlay injeta:
+  - `nix-openclaw.overlays.default`
+  - override em `openclaw`
+  - override em `openclaw-gateway`
+  - `pkgs.unstable`
+
+## Fonte de verdade por area
+
+### Sistema
+
+- Fonte principal: `hosts/Nixos/configuration.nix`
+- Nao edite arquivos em `/etc`, `/run/current-system`, `/run/agenix` ou servicos gerados; todos sao outputs.
+
+### Hardware
+
+- Fonte principal: `hosts/Nixos/hardware-configuration.nix`
+- Este arquivo contem mounts e driver de video. Caminhos absolutos ali sao esperados e nao devem ser "corrigidos" sem pedido explicito.
+
+### Home Manager
+
+- Fonte principal: `home/ltadeu6.nix`
+- O Home Manager publica arquivos em `~/.config` a partir de `configs/` ou gera alguns deles inline.
+
+### Hyprland / wallpaper
+
+- `configs/hypr/hyprland.conf` e a fonte de verdade do Hyprland.
+- `configs/hypr/nixos.png` e o asset versionado do wallpaper.
+- `~/.config/hypr/hyprpaper.conf` NAO existe no repo; ele e gerado inline por `home/ltadeu6.nix`.
+- `~/.config/hypr/nixos.png` tambem e publicado pelo Home Manager a partir de `configs/hypr/nixos.png`.
+- `~/.config/hypr/scripts/screenshot-active-window.sh` e gerado inline por `home/ltadeu6.nix`.
+- O comentario de cabecalho "AUTOGENERATED HYPR CONFIG" em `configs/hypr/hyprland.conf` e legado; apesar disso, o arquivo versionado no repo e a fonte real.
+
+### Waybar
+
+- Fontes de verdade:
+  - `configs/waybar/config`
+  - `configs/waybar/style.css`
+  - `configs/waybar/dracula.css`
+  - `configs/waybar/air_control.py`
+  - `configs/waybar/launch.sh`
+  - `configs/waybar/switch_sink.sh`
+  - `configs/waybar/spotify_status.sh`
+- Esses arquivos sao publicados em `~/.config/waybar/` pelo Home Manager.
+
+### Doom Emacs
+
+- Fontes de verdade:
+  - `configs/doom/config.el`
+  - `configs/doom/init.el`
+  - `configs/doom/packages.el`
+- Nao existe `configs/doom/config.org` no estado atual do repo.
+- `configs/doom/custom.el` nao e versionado; trate customizacoes locais geradas pelo Emacs como fora do escopo do repo.
+
+### Wofi
+
+- Fontes de verdade:
+  - `configs/wofi/config`
+  - `configs/wofi/style.css`
+  - `configs/wofi/menu`
+  - `configs/wofi/menu.css`
+
+### OpenClaw
+
+- `home/openclaw.nix` e a fonte do modulo Home Manager do OpenClaw.
+- `openclaw/documents/` so importa quando `enableOpenClaw = true`.
+- Nao altere `openclaw/documents/` achando que isso afetara o sistema atual sem antes verificar se o modulo esta habilitado.
+
+## Estrutura funcional atual
+
+### `hosts/Nixos/configuration.nix`
+
+Este modulo concentra:
+
+- Variaveis locais do host:
+  - `username = "ltadeu6"`
+  - `homeDir = "/home/${username}"`
+- `agenix`:
+  - identidade em `${homeDir}/.ssh/id_ed25519`
+  - segredos opcionais via `builtins.pathExists`
+- `nix.settings`:
+  - `nix-command`
+  - `flakes`
+  - `auto-optimise-store`
+  - cache CUDA extra
+- boot:
+  - `systemd-boot`
+  - Plymouth
+  - kernel params silenciosos
+  - `vhba`
+- rede:
+  - host `Nixos`
+  - `networkmanager`
+  - firewall desabilitado
+  - IP estatico em `enp4s0`
+  - gateway e DNS fixos
+  - `extraHosts` com alias `vps`
+  - bloco WireGuard comentado
+- locale:
+  - timezone `America/Sao_Paulo`
+  - locale `pt_BR.UTF-8`
+  - keymap `br-abnt2`
+- programas habilitados:
+  - `cdemu`
+  - `gamescope`
+  - `virt-manager`
+  - `gnupg.agent`
+  - `nautilus-open-any-terminal`
+  - `fish`
+  - `hyprland`
+  - `neovim`
+  - `nix-ld`
+  - `dconf`
+  - `kdeconnect`
+  - `steam`
+  - `starship`
+  - `java`
+  - `htop`
+  - `git`
+  - `gamemode`
+  - `firefox`
+  - `adb`
+- servicos habilitados:
+  - `fstrim`
+  - `home-assistant`
+  - `dbus`
+  - `displayManager.gdm`
+  - `gvfs`
+  - `gnome.gnome-keyring`
+  - `udisks2`
+  - `flatpak`
+  - `openssh`
+  - `emacs`
+  - `printing`
+  - `pipewire`
+- servicos atualmente declarados mas desabilitados:
+  - `mysql`
+  - `terraria`
+  - `minecraft-server`
+  - `jupyterhub`
+- audio e input:
+  - `services.pulseaudio.enable = false`
+  - `pipewire` com ALSA, Pulse e JACK
+  - `security.rtkit.enable = true`
+  - `hardware.uinput.enable = true`
+  - `hardware.bluetooth.enable = true`
+- automacoes do sistema:
+  - perfil `/etc/profile.d/openai.sh`
+  - perfil `/etc/profile.d/openclaw.sh`
+  - `nix-flake-update` timer/service
+  - `flatpak-update` timer/service
+  - `nix.gc` semanal
+- usuario:
+  - `users.users.ltadeu6`
+  - grupos: `terraria`, `mysql`, `networkmanager`, `wheel`, `storage`
+  - shell `fish`
+- virtualizacao:
+  - `libvirtd.enable = true`
+  - `docker = false`
+  - `waydroid = false`
+- desktop infra:
+  - fontes Nerd Fonts
+  - `xdg.portal` com portal GTK
+  - `allowUnfree = true`
+
+### Notas importantes sobre `configuration.nix`
+
+- `services.transmission` e `services.syncthing` foram removidos; nao reintroduza sem pedido explicito.
+- Os segredos do Syncthing tambem foram removidos do repo.
+- O servico `nix-flake-update` nao depende mais de path absoluto fixo do checkout; ele busca um repo sob `$HOME` contendo `hosts/Nixos/configuration.nix`.
+- `nix-flake-update` faz:
+  - `nix flake update --commit-lock-file`
+  - `nixos-rebuild switch --flake "$repo_dir#Nixos"`
+  - somente se o repo estiver limpo exceto por `flake.lock`
+
+## Estrutura do Home Manager (`home/ltadeu6.nix`)
+
+Este modulo concentra:
+
+- identidade do usuario:
+  - `home.username = "ltadeu6"`
+  - `home.homeDirectory = "/home/ltadeu6"`
+  - `home.stateVersion = "25.11"`
+- programas/configs gerenciados:
+  - `kitty`
+  - `dunst`
+  - `gtk`
+  - cursor `Breeze`
+  - `xdg.mimeApps`
+  - `xdg.userDirs`
+  - `spotifyd`
+  - `programs.home-manager.enable = true`
+- session variables:
+  - `MANPAGER`
+  - `HYPRCURSOR_THEME`
+  - `HYPRCURSOR_SIZE`
+  - `QT_QPA_PLATFORMTHEME`
+- ativacao custom:
+  - `home.activation.openclawGatewayEnv`
+  - gera `~/.config/openclaw/gateway.env` a partir de `/run/agenix/openclaw_gateway_token`
+
+### Arquivos publicados/gerados pelo Home Manager
+
+- Hypr:
+  - publica `configs/hypr/hyprland.conf`
+  - gera `~/.config/hypr/hyprpaper.conf`
+  - publica `configs/hypr/nixos.png`
+  - gera `~/.config/hypr/scripts/screenshot-active-window.sh`
+- Hyfetch:
+  - gera `~/.config/hyfetch.json`
+- Waybar:
+  - publica `config`, `style.css`, `dracula.css`
+  - publica `air_control.py`
+  - publica `spotify_status.sh`
+  - publica `launch.sh`
+  - publica `switch_sink.sh`
+- Doom:
+  - publica `config.el`, `init.el`, `packages.el`
+- Wofi:
+  - publica `config`, `style.css`, `menu`, `menu.css`
+
+### Dependencias de `home.packages`
+
+Nao replique toda a lista daqui em outras docs; a fonte de verdade e `home/ltadeu6.nix`.
+
+Pacotes de sessao e desktop usados diretamente pelos configs:
+
+- `waybar`
+- `hyprpaper`
+- `wofi`
+- `pavucontrol`
+- `playerctl`
+- `jq`
+- `grim`
+- `slurp`
+- `wl-clipboard`
+- `networkmanager`
+- `hyprpicker`
+- `papirus-icon-theme`
+- `mpv`
+- `evince`
+- `ripgrep`
+
+Pacotes relevantes para trabalho/dev presentes no estado atual:
+
+- `unstable.codex`
+- `vscode`
+- `clang-tools`
+- `nodejs`
+- `stylelint`
+- `html-tidy`
+- `shfmt`
+- `shellcheck`
+- `black`
+- `isort`
+- `pipenv`
+- `nixfmt-classic`
+- `fd`
+- `tmux`
+- `texlab`
+
+Pacotes de uso geral e apps pesados presentes:
+
+- `tor-browser`
+- `libreoffice`
+- `gimp`
+- `inkscape`
+- `blender`
+- `discord-ptb`
+- `android-studio`
+- `gnome-boxes`
+- `prismlauncher`
+- `sageWithDoc`
+
+Para lista completa, consulte diretamente `home.packages`.
+
+## Arquivos e comportamento por aplicacao
+
+### Hyprland
+
+Arquivo principal:
+
+- `configs/hypr/hyprland.conf`
+
+Comportamentos importantes:
+
+- Define dois monitores por descricao:
+  - LG ultrawide em alta taxa de refresh
+  - monitor lateral `STD Computer Inc LED`
+- Autostart:
+  - `waybar`
+  - `hyprpaper`
+  - `dbus-launch kdeconnect-indicator`
+  - `antimicrox` com perfil em `/etc/antimicrox/controller-mouse.amgp`
+  - shell snippet que usa `hyprctl`, `jq` e `xrandr` para forcar monitor primario
+- Launcher:
+  - usa `wofi --show drun`
+- Screenshots:
+  - area via `grim` + `slurp`
+  - tela inteira via `grim`
+  - janela ativa via script gerado pelo Home Manager
+- Workspaces:
+  - workspaces `1..9` no monitor ultrawide
+  - workspace `10` no monitor lateral
+- Regras especiais:
+  - Steam e jogos Proton na workspace 4
+  - Emacs na workspace 2
+- Multimedia keys:
+  - dependem de `playerctl`
+
+Cuidados:
+
+- O autostart assume disponibilidade de `dbus-launch`, `kdeconnect-indicator`, `hyprctl`, `jq` e `xrandr`.
+- Se alterar nomes/descricoes de monitor, ajuste tanto os `monitor = ...` quanto o snippet que detecta a saida primaria.
+
+### Hyprpaper
+
+- O wallpaper e controlado por `home/ltadeu6.nix`, nao por um arquivo `configs/hypr/hyprpaper.conf`.
+- O runtime usa `~/.config/hypr/nixos.png`, publicado a partir de `configs/hypr/nixos.png`.
+- Se trocar a imagem do wallpaper, prefira substituir `configs/hypr/nixos.png` ou ajustar o source em `home/ltadeu6.nix`.
+
+### Waybar
+
+Arquivos principais:
+
+- `configs/waybar/config`
+- `configs/waybar/style.css`
+- `configs/waybar/dracula.css`
+- `configs/waybar/air_control.py`
+- `configs/waybar/launch.sh`
+- `configs/waybar/switch_sink.sh`
+- `configs/waybar/spotify_status.sh`
+
+Modulos relevantes:
+
+- `hyprland/workspaces`
+- `cava`
+- `custom/ac`
+- `clock`
+- `custom/spotify`
+- `network`
+- `bluetooth`
+- `pulseaudio`
+- `backlight`
+- `battery`
+- `custom/poweroff`
+
+Dependencias e assumptions do Waybar:
+
+- `custom/spotify` depende de `spotifyd` e `playerctl`.
+- `pulseaudio` usa `pavucontrol` e `pactl`.
+- `bluetooth` chama `bluetoothctl`.
+- `custom/ac` executa `~/.config/waybar/air_control.py`.
+- Os botoes de lock chamam `hyprlock`.
+
+Cuidados:
+
+- `configs/waybar/config` referencia `hyprlock`, `bluetoothctl` e o modulo `cava`.
+- Nem toda dependencia usada no runtime aparece perto do arquivo que a consome; verifique `home.packages`, `environment.systemPackages` e os servicos do sistema antes de alterar comandos.
+
+### Waybar AC / Home Assistant
+
+Arquivo principal:
+
+- `configs/waybar/air_control.py`
+
+Regras atuais:
+
+- Usa apenas stdlib Python:
+  - `urllib`
+  - `json`
+  - `fcntl`
+  - etc.
+- Nao depende de `requests`, apesar de `python3Packages.requests` existir em `home.packages`.
+- Fala com Home Assistant em `http://localhost:8123`.
+- Controla a entidade `climate.ar`.
+- Le token em `~/.config/secrets/ha_token`.
+- Usa debounce e estado local em `~/.cache`.
+- Arquivos de cache:
+  - `~/.cache/waybar_air_state.json`
+  - `~/.cache/waybar_air_state.lock`
+- Regras de UX:
+  - alteracoes de setpoint/modo/fan aparecem primeiro na UI
+  - envio real e atrasado por debounce
+  - `fan_only` e `dry` mostram temperatura atual do ambiente
+  - fan speed aparece como indicador pequeno/subscrito
+
+### Spotify no Waybar
+
+Arquivo principal:
+
+- `configs/waybar/spotify_status.sh`
+
+Regras atuais:
+
+- Descobre o player com `playerctl -l | rg '^spotifyd\.instance'`.
+- Mostra artista + titulo.
+- Usa um icone para `Playing` e outro para `Paused`.
+- So faz sentido se `services.spotifyd.enable = true`, o que esta habilitado hoje em `home/ltadeu6.nix`.
+
+### Doom Emacs
+
+Arquivos principais:
+
+- `configs/doom/init.el`
+- `configs/doom/config.el`
+- `configs/doom/packages.el`
+
+Estado atual:
+
+- `init.el` habilita uma lista longa de modulos Doom, incluindo:
+  - `vertico`
+  - `corfu`
+  - `treemacs`
+  - `vterm`
+  - `lsp`
+  - linguagens como `cc`, `ess`, `gdscript`, `json`, `java`, `javascript`, `kotlin`, `latex`, `nix`, `org`, `python`, `qt`, `rust`, `sh`, `web`, `yaml`
+- `packages.el` adiciona:
+  - `org-ref`
+  - `vue-mode`
+  - `kivy-mode`
+  - `treemacs-all-the-icons`
+- `config.el` contem:
+  - identidade do usuario
+  - tema Dracula
+  - fontes FiraCode Nerd Font Mono
+  - ajustes de LSP/clangd
+  - integracao com `org-ref`
+  - configuracao de PDF tools
+  - classe `abntex2` para LaTeX
+  - dashboard customizado
+
+Cuidados:
+
+- Se alterar modulos ou `packages.el`, normalmente e preciso rodar `doom sync` fora do fluxo Nix.
+- Nao documente `config.org` ou `custom.el` como fonte de verdade; esses arquivos nao sao parte ativa do repo atual.
+
+### Wofi
+
+Arquivos principais:
+
+- `configs/wofi/config`
+- `configs/wofi/style.css`
+- `configs/wofi/menu`
+- `configs/wofi/menu.css`
+
+Estado atual:
+
+- `config` define um launcher `drun` centralizado com prompt `Buscar...`.
+- `menu` parece ser config auxiliar para `wofi-wifi-menu`.
+- Tema usa Fira Code Nerd Font e paleta no estilo Dracula.
+
+### OpenClaw
+
+Arquivo principal:
+
+- `home/openclaw.nix`
+
+Estado atual:
+
+- O modulo esta presente, mas desligado pelo gate `enableOpenClaw = false` em `flake.nix`.
+- Quando habilitado, ele:
+  - liga `programs.openclaw`
+  - usa `../openclaw/documents`
+  - configura gateway local
+  - busca token em `OPENCLAW_GATEWAY_TOKEN`
+  - aponta o provider Ollama para `http://127.0.0.1:11434`
+  - usa modelo `ollama/gemma4:e4b`
+
+## Secrets e variaveis de ambiente
+
+### Segredos versionados hoje
+
+- `secrets/openai_api_key.age`
+- `secrets/openclaw_gateway_token.age`
+- `secrets/minecraft_rcon_password.age`
+- `secrets/wireguard_private_key.age`
+
+### Regras do agenix
+
+- Fonte de verdade: `secrets/secrets.nix`
+- Nunca grave segredo em texto puro no repo.
+- Se adicionar novo `.age`, atualize `secrets/secrets.nix` e o consumo correspondente no modulo Nix.
+
+### Exposicao em runtime
+
+- `fish.shellInit` exporta:
+  - `OPENAI_API_KEY`
+  - `OPENCLAW_GATEWAY_TOKEN`
+- `/etc/profile.d/openai.sh` e `/etc/profile.d/openclaw.sh` fazem o mesmo para shells de login.
+- O token do Home Assistant do Waybar AC NAO esta sob agenix neste repo; ele e lido diretamente de `~/.config/secrets/ha_token`.
+
+## Dependencias implicitas e pontos de atencao
+
+Itens que um agente deve verificar antes de mexer:
+
+- `hyprlock` e chamado pelo Waybar, mas nao aparece explicitamente perto do modulo que o consome.
+- `xrandr` e chamado por `configs/hypr/hyprland.conf`; confirme disponibilidade antes de trocar esse fluxo.
+- `dbus-launch` e `kdeconnect-indicator` sao usados no autostart do Hyprland.
+- `bluetoothctl` e usado por Waybar.
+- `playerctl` e usado tanto no Hyprland quanto no Waybar.
+- `pactl` e necessario para `configs/waybar/switch_sink.sh`.
+- `Home Assistant` local e `~/.config/secrets/ha_token` sao dependencias externas do controle de ar.
+- `open-webui` depende do `ollama` configurado no host.
+
+## Arquivos gerados que NAO devem ser editados diretamente
+
+- `~/.config/hypr/hyprpaper.conf`
+- `~/.config/hypr/nixos.png`
+- `~/.config/hypr/scripts/screenshot-active-window.sh`
+- `~/.config/hyfetch.json`
+- `~/.config/openclaw/gateway.env`
+- `/etc/antimicrox/controller-mouse.amgp`
+- `/etc/antimicrox/player-toggle.sh`
+- `/etc/antimicrox/disable-controller.sh`
+- `/etc/profile.d/openai.sh`
+- `/etc/profile.d/openclaw.sh`
+
+## Comandos uteis
+
+### Rebuild / apply
+
+- `sudo nixos-rebuild switch --flake .#Nixos`
+
+### Validacao mais fiel do sistema
+
+- `nix --extra-experimental-features 'nix-command flakes' build --print-out-paths '.#nixosConfigurations."Nixos".config.system.build.toplevel' --no-link`
+
+### Parse basico de sintaxe Nix
+
+- `nix-instantiate --parse hosts/Nixos/configuration.nix`
+- `nix-instantiate --parse home/ltadeu6.nix`
+
+### Procura estrutural
+
+- `rg -n 'algum-termo' .`
+- `rg --files`
+
+### Doom Emacs
+
+- Se mudar `configs/doom/init.el` ou `configs/doom/packages.el`, pode ser necessario rodar `doom sync`.
+
+## Politica para mudancas
+
+- Mantenha a logica declarativa no arquivo de origem:
+  - sistema em `hosts/Nixos/configuration.nix`
+  - usuario em `home/ltadeu6.nix`
+  - apps em `configs/...`
+- Se um arquivo em `configs/` estiver versionado e for publicado por `home.file`, prefira editar esse arquivo.
+- Se um arquivo em `~/.config` e gerado via `.text` ou script inline, edite `home/ltadeu6.nix`.
+- Nao reintroduza paths absolutos para o checkout do repo; o sistema atual foi limpo para evitar dependencia no local exato do projeto.
+- Ao mexer com wallpapers, mantenha o asset dentro do repo ou em caminho controlado pelo Nix/Home Manager.
+- Ao mexer com timers/servicos que fazem `git` ou `nix`, considere que o sandbox do agente pode falhar por escrita em cache; isso nao significa que a configuracao Nix esteja errada.
+
+## Estado atual que agentes nao devem contradizer
+
+- `configs/hypr/hyprpaper.conf` nao existe mais no repo como fonte de verdade.
+- `Transmission` nao esta configurado no sistema.
+- `Syncthing` nao esta configurado no sistema.
+- Os secrets do Syncthing foram removidos.
+- O OpenClaw continua opcional e desligado por default.
+- O wallpaper do Hypr e entregue pelo Home Manager a partir de `configs/hypr/nixos.png`.
+- O script `configs/waybar/spotify_status.sh` e a fonte real do status do Spotify no Waybar.
 
 ## Commits
+
 - Use mensagens curtas e descritivas em ingles.
-- Desative assinatura se o GPG falhar.
+- Se o GPG falhar, prefira desabilitar assinatura naquele commit em vez de bloquear a mudanca.

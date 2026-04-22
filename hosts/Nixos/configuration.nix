@@ -2,18 +2,22 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, agenix, ... }: {
+{ config, pkgs, lib, agenix, ... }:
+let
+  username = "ltadeu6";
+  homeDir = "/home/${username}";
+in {
   imports = [ # Include the results of the hardware scan.
     ./hardware-configuration.nix
   ];
 
   age = {
-    identityPaths = [ "/home/ltadeu6/.ssh/id_ed25519" ];
+    identityPaths = [ "${homeDir}/.ssh/id_ed25519" ];
     secrets = { } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/openai_api_key.age) {
         openai_api_key = {
           file = ../../secrets/openai_api_key.age;
-          owner = "ltadeu6";
+          owner = username;
           group = "users";
           mode = "0400";
         };
@@ -21,7 +25,7 @@
       (builtins.pathExists ../../secrets/openclaw_gateway_token.age) {
         openclaw_gateway_token = {
           file = ../../secrets/openclaw_gateway_token.age;
-          owner = "ltadeu6";
+          owner = username;
           group = "users";
           mode = "0400";
         };
@@ -29,12 +33,6 @@
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
           ../../secrets/minecraft_rcon_password.age;
-      } // lib.optionalAttrs
-      (builtins.pathExists ../../secrets/syncthing_pixel_id.age) {
-        syncthing_pixel_id.file = ../../secrets/syncthing_pixel_id.age;
-      } // lib.optionalAttrs
-      (builtins.pathExists ../../secrets/syncthing_tv_id.age) {
-        syncthing_tv_id.file = ../../secrets/syncthing_tv_id.age;
       } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/wireguard_private_key.age) {
         wireguard_private_key.file = ../../secrets/wireguard_private_key.age;
@@ -272,16 +270,6 @@
       enable = true;
       host = "0.0.0.0";
     };
-    transmission = {
-      enable = false;
-      user = "ltadeu6";
-      home = "/home/ltadeu6/Extra/Transmission/";
-      package = pkgs.transmission_4;
-      settings = {
-        rpc-bind-address = "0.0.0.0";
-        rpc-whitelist = "*.*.*.*";
-      };
-    };
     jupyterhub = {
       enable = false;
       port = 8000;
@@ -368,12 +356,12 @@
         };
       };
       extraConfig = ''
-        c.Authenticator.allowed_users = {"ltadeu6"};
-        c.JupyterHub.admin_users = {"ltadeu6"};
+        c.Authenticator.allowed_users = {"${username}"};
+        c.JupyterHub.admin_users = {"${username}"};
       '';
     };
     displayManager.autoLogin.enable = true;
-    displayManager.autoLogin.user = "ltadeu6";
+    displayManager.autoLogin.user = username;
 
     openssh = {
       enable = true;
@@ -392,39 +380,6 @@
       # use the example session manager (no others are packaged yet so this is enabled by default,
       # no need to redefine it in your config for now)
       #media-session.enable = true;
-    };
-    syncthing = {
-      enable = false;
-      user = "ltadeu6";
-      dataDir = "/home/ltadeu6"; # Default folder for new synced folders
-      configDir = "/home/ltadeu6/.config/syncthing";
-      settings = {
-        devices = { } // lib.optionalAttrs (config.services.syncthing.enable
-          && config.age.secrets ? syncthing_pixel_id) {
-            "Pixel" = {
-              id = builtins.readFile config.age.secrets.syncthing_pixel_id.path;
-            };
-          } // lib.optionalAttrs (config.services.syncthing.enable
-            && config.age.secrets ? syncthing_tv_id) {
-              "TV" = {
-                id = builtins.readFile config.age.secrets.syncthing_tv_id.path;
-              };
-            };
-        folders = {
-          "RetroArch" = { # Name of folder in Syncthing, also the folder ID
-            path =
-              "/home/ltadeu6/.config/retroarch"; # Which folder to add to Syncthing
-            devices = [ "Pixel" "TV" ]; # Which devices to share the folder with
-            versioning = {
-              type = "simple";
-              params = {
-                keep = "5";
-                cleanoutDays = "15";
-              };
-            };
-          };
-        };
-      };
     };
   };
 
@@ -719,9 +674,9 @@
     fi
   '';
 
-  users.groups.libvirtd.members = [ "ltadeu6" ];
+  users.groups.libvirtd.members = [ username ];
 
-  users.users.ltadeu6 = {
+  users.users.${username} = {
     isNormalUser = true;
     description = "Lucas Tadeu";
     extraGroups = [
@@ -729,31 +684,27 @@
       "mysql"
       "networkmanager"
       "wheel"
-      "syncthing"
-      "transmission"
       "storage"
     ];
     shell = pkgs.fish;
   };
 
-  system.autoUpgrade = {
-    enable = true;
-    flake = "/home/ltadeu6/nixos-config";
-    dates = "02:00";
-    randomizedDelaySec = "45min";
-    flags = [
-      "--print-build-logs"
-    ];
-  };
-
   systemd.services."nix-flake-update" = {
-    description = "Update flake.lock and commit";
-    path = [ pkgs.git pkgs.nix pkgs.coreutils ];
+    description = "Update flake.lock, commit, and rebuild";
+    path = [
+      pkgs.findutils
+      pkgs.git
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.nixos-rebuild
+      pkgs.nix
+      pkgs.coreutils
+    ];
     serviceConfig = {
       Type = "oneshot";
-      User = "ltadeu6";
-      WorkingDirectory = "/home/ltadeu6/nixos-config";
+      User = username;
       Environment = [
+        "HOME=${homeDir}"
         "GIT_AUTHOR_NAME=auto-upgrade"
         "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
         "GIT_COMMITTER_NAME=auto-upgrade"
@@ -764,7 +715,13 @@
       set -euo pipefail
       export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:/run/current-system/sw/bin"
 
-      repo_status="$(git status --porcelain=v1 --untracked-files=normal)"
+      repo_dir="$(${pkgs.findutils}/bin/find "$HOME" -path '*/hosts/Nixos/configuration.nix' -print -quit | ${pkgs.gnused}/bin/sed 's#/hosts/Nixos/configuration\.nix##')"
+      if [ -z "$repo_dir" ]; then
+        echo "Skipping flake update: could not locate repo under $HOME"
+        exit 0
+      fi
+
+      repo_status="$(git -C "$repo_dir" status --porcelain=v1 --untracked-files=normal)"
       relevant_status="$(printf '%s\n' "$repo_status" | ${pkgs.gnugrep}/bin/grep -vE '^[ MARCUD?!]{2} flake\.lock$' || true)"
       if [ -n "$relevant_status" ]; then
         echo "Skipping flake update: repository has local changes"
@@ -773,19 +730,20 @@
 
       backup=""
       cleanup() {
-        if [ -n "$backup" ] && [ -f "$backup" ] && [ ! -f flake.lock ]; then
-          mv "$backup" flake.lock
+        if [ -n "$backup" ] && [ -f "$backup" ] && [ ! -f "$repo_dir/flake.lock" ]; then
+          mv "$backup" "$repo_dir/flake.lock"
         fi
       }
       trap cleanup EXIT
 
-      if [ -f flake.lock ] && [ ! -w flake.lock ]; then
+      if [ -f "$repo_dir/flake.lock" ] && [ ! -w "$repo_dir/flake.lock" ]; then
         backup="$(mktemp)"
-        cp flake.lock "$backup"
-        rm -f flake.lock
+        cp "$repo_dir/flake.lock" "$backup"
+        rm -f "$repo_dir/flake.lock"
       fi
 
-      /run/current-system/sw/bin/nix flake update --commit-lock-file
+      /run/current-system/sw/bin/nix flake update --commit-lock-file "$repo_dir"
+      /run/current-system/sw/bin/nixos-rebuild switch --flake "$repo_dir#Nixos"
 
       if [ -n "$backup" ] && [ -f "$backup" ]; then
         rm -f "$backup"

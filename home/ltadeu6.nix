@@ -151,7 +151,6 @@
     defaultApplications = {
       "x-scheme-handler/discord-402572971681644545" = [ "discord-402572971681644545.desktop" ];
       "application/pdf" = [ "org.gnome.Evince.desktop" ];
-      "x-scheme-handler/magnet" = [ "userapp-transmission-gtk-B3E3L2.desktop" ];
       "x-scheme-handler/http" = [ "app.zen_browser.zen.desktop" ];
       "x-scheme-handler/https" = [ "app.zen_browser.zen.desktop" ];
       "x-scheme-handler/chrome" = [ "app.zen_browser.zen.desktop" ];
@@ -169,7 +168,6 @@
     };
     associations.added = {
       "application/pdf" = [ "org.gnome.Evince.desktop" ];
-      "x-scheme-handler/magnet" = [ "userapp-transmission-gtk-B3E3L2.desktop" ];
       "x-scheme-handler/http" = [ "app.zen_browser.zen.desktop" ];
       "x-scheme-handler/https" = [ "app.zen_browser.zen.desktop" ];
       "x-scheme-handler/chrome" = [ "app.zen_browser.zen.desktop" ];
@@ -283,7 +281,17 @@
 
   home.file = {
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
-    ".config/hypr/hyprpaper.conf".source = ../configs/hypr/hyprpaper.conf;
+    ".config/hypr/hyprpaper.conf".text = ''
+      preload = ${config.home.homeDirectory}/.config/hypr/nixos.png
+
+      #if more than one preload is desired then continue to preload other backgrounds
+
+      #set the default wallpaper(s) seen on initial workspace(s) --depending on the number of monitors used
+      wallpaper = , ${config.home.homeDirectory}/.config/hypr/nixos.png
+
+      splash = false
+    '';
+    ".config/hypr/nixos.png".source = ../configs/hypr/nixos.png;
     ".config/hypr/scripts/screenshot-active-window.sh" = {
       executable = true;
       text = ''
@@ -328,35 +336,8 @@
       executable = true;
     };
     ".config/waybar/spotify_status.sh" = {
+      source = ../configs/waybar/spotify_status.sh;
       executable = true;
-      text = ''
-        #!/usr/bin/env sh
-
-        player="$(playerctl -l 2>/dev/null | rg '^spotifyd\.instance' -m1 || true)"
-
-        if [ -z "$player" ]; then
-          exit 0
-        fi
-
-        status="$(playerctl -p "$player" status 2>/dev/null || true)"
-        text="$(playerctl -p "$player" metadata --format '{{artist}} - {{title}}' 2>/dev/null || true)"
-
-        if [ -z "$text" ]; then
-          exit 0
-        fi
-
-        case "$status" in
-          Playing)
-            printf ' %s\n' "$text"
-            ;;
-          Paused)
-            printf ' %s\n' "$text"
-            ;;
-          *)
-            exit 0
-            ;;
-        esac
-      '';
     };
     ".config/waybar/launch.sh" = {
       source = ../configs/waybar/launch.sh;

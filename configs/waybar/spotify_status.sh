@@ -15,7 +15,7 @@ fi
 
 case "$status" in
   Playing)
-    printf ' %s\n' "$text"
+    printf ' %s\n' "$text"
     ;;
   Paused)
     printf ' %s\n' "$text"
