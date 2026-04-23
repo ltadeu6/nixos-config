@@ -32,6 +32,9 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
+- `configs/home-assistant/`: scripts auxiliares consumidos por servicos do host para alimentar o Home Assistant.
+  - `configs/home-assistant/codex_status.py`: exportador do status local do Codex.
+  - `configs/home-assistant/ui-lovelace.yaml`: dashboard principal do Home Assistant em YAML.
 - `configs/wofi/`: configuracao e tema do launcher Wofi.
 - `secrets/secrets.nix`: regras do agenix.
 - `secrets/*.age`: segredos criptografados.
@@ -557,6 +560,56 @@ Itens que um agente deve verificar antes de mexer:
 - `pactl` e necessario para `configs/waybar/switch_sink.sh`.
 - `Home Assistant` local e `~/.config/secrets/ha_token` sao dependencias externas do controle de ar.
 - `open-webui` depende do `ollama` configurado no host.
+
+### Home Assistant / Codex status
+
+Arquivo principal:
+
+- `configs/home-assistant/codex_status.py`
+
+Estado atual:
+
+- O host exporta o status local do Codex a partir de `~/.codex/sessions/.../*.jsonl`.
+- O export e feito pelo timer `codex-status-export`, que gera `/var/lib/hass/codex_status.json`.
+- O Home Assistant le esse JSON via sensores `command_line`.
+- Sensores expostos hoje:
+  - `sensor.codex_5h_left`
+  - `sensor.codex_5h_reset`
+  - `sensor.codex_5h_reset_formatted`
+  - `sensor.codex_weekly_left`
+  - `sensor.codex_weekly_reset`
+  - `sensor.codex_weekly_reset_formatted`
+
+Cuidados:
+
+- Nao tente obter esses dados via API de billing da OpenAI sem necessidade; o estado atual usa apenas arquivos locais do Codex.
+- Se mover a origem dos logs do Codex, ajuste `CODEX_SESSION_ROOT` no servico `codex-status-export`.
+- O dashboard do Home Assistant continua em storage mode; a fonte declarativa aqui cobre os sensores, nao os cards da UI.
+
+### Home Assistant / dashboard do Codex
+
+Arquivo principal:
+
+- `configs/home-assistant/ui-lovelace.yaml`
+- `configs/home-assistant/ui-overview.yaml`
+
+Estado atual:
+
+- A dashboard principal `Home` e declarativa e vem de `ui-lovelace.yaml`.
+- Os recursos custom do Lovelace sao declarados em `services.home-assistant.config.lovelace.resources`.
+- O painel do Codex existe na dashboard principal `Home` e tambem na dashboard extra `Visão Geral`.
+- O painel escolhido para o Codex e o minimalista.
+
+Dependencias visuais atuais:
+
+- `lovelace-mushroom`
+- `button-card`
+
+Cuidados:
+
+- Se algum desses recursos nao estiver instalado no HACS, a dashboard pode abrir com erro de `custom element doesn't exist`.
+- Mudancas pela UI na dashboard principal nao sao a fonte de verdade; o repo sobrescreve `ui-lovelace.yaml`.
+- Recursos Lovelace relevantes devem ser mantidos na configuracao declarativa, nao apenas pela UI.
 
 ## Arquivos gerados que NAO devem ser editados diretamente
 

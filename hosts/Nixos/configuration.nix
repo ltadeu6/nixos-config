@@ -6,6 +6,7 @@
 let
   username = "ltadeu6";
   homeDir = "/home/${username}";
+  codexStatusPath = "/var/lib/hass/codex_status.json";
   zenExtension = shortId: guid: {
     name = guid;
     value = {
@@ -223,6 +224,11 @@ in {
       enable = true;
       openFirewall = true;
       extraComponents = [ "lg_thinq" ];
+      extraPackages = python3Packages: [
+        python3Packages.getmac
+        python3Packages.pymetno
+        python3Packages.aiogithubapi
+      ];
       config = {
         homeassistant = {
           name = "Casa";
@@ -231,6 +237,97 @@ in {
         };
 
         default_config = { };
+
+        command_line = [
+          {
+            sensor = {
+              name = "Codex 5h Left";
+              unique_id = "codex_5h_left";
+              command = "${pkgs.coreutils}/bin/cat ${codexStatusPath}";
+              value_template = "{{ value_json.five_hour_left_percent }}";
+              unit_of_measurement = "%";
+              scan_interval = 60;
+              icon = "mdi:timer-sand";
+            };
+          }
+          {
+            sensor = {
+              name = "Codex 5h Reset";
+              unique_id = "codex_5h_reset";
+              command = "${pkgs.coreutils}/bin/cat ${codexStatusPath}";
+              value_template = "{{ value_json.five_hour_resets_at }}";
+              device_class = "timestamp";
+              scan_interval = 60;
+              icon = "mdi:timer-refresh";
+            };
+          }
+          {
+            sensor = {
+              name = "Codex Weekly Left";
+              unique_id = "codex_weekly_left";
+              command = "${pkgs.coreutils}/bin/cat ${codexStatusPath}";
+              value_template = "{{ value_json.weekly_left_percent }}";
+              unit_of_measurement = "%";
+              scan_interval = 60;
+              icon = "mdi:calendar-week";
+            };
+          }
+          {
+            sensor = {
+              name = "Codex Weekly Reset";
+              unique_id = "codex_weekly_reset";
+              command = "${pkgs.coreutils}/bin/cat ${codexStatusPath}";
+              value_template = "{{ value_json.weekly_resets_at }}";
+              device_class = "timestamp";
+              scan_interval = 60;
+              icon = "mdi:calendar-refresh";
+            };
+          }
+        ];
+
+        template = [
+          {
+            sensor = [
+              {
+                name = "Codex 5h Reset Formatted";
+                unique_id = "codex_5h_reset_formatted";
+                state =
+                  "{{ as_timestamp(states('sensor.codex_5h_reset')) | timestamp_custom('%d/%m/%Y %H:%M', true) }}";
+                icon = "mdi:timer-refresh";
+              }
+              {
+                name = "Codex Weekly Reset Formatted";
+                unique_id = "codex_weekly_reset_formatted";
+                state =
+                  "{{ as_timestamp(states('sensor.codex_weekly_reset')) | timestamp_custom('%d/%m/%Y %H:%M', true) }}";
+                icon = "mdi:calendar-refresh";
+              }
+            ];
+          }
+        ];
+
+        lovelace = {
+          dashboards = {
+            overview-dashboard = {
+              mode = "yaml";
+              title = "Visão Geral";
+              icon = "mdi:view-dashboard";
+              show_in_sidebar = true;
+              require_admin = false;
+              filename = "/etc/home-assistant/ui-overview.yaml";
+            };
+          };
+          resources = [
+            {
+              url = "/hacsfiles/lovelace-mushroom/mushroom.js";
+              type = "module";
+            }
+            {
+              url = "/hacsfiles/button-card/button-card.js";
+              type = "module";
+            }
+          ];
+        };
       };
     };
     dbus.enable = true;
@@ -708,6 +805,12 @@ in {
 
   users.groups.libvirtd.members = [ username ];
 
+  services.home-assistant.lovelaceConfigFile =
+    ../../configs/home-assistant/ui-lovelace.yaml;
+
+  environment.etc."home-assistant/ui-overview.yaml".source =
+    ../../configs/home-assistant/ui-overview.yaml;
+
   users.users.${username} = {
     isNormalUser = true;
     description = "Lucas Tadeu";
@@ -782,6 +885,30 @@ in {
       fi
       trap - EXIT
     '';
+  };
+
+  systemd.services.codex-status-export = {
+    description = "Export Codex status for Home Assistant";
+    after = [ "home-assistant.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+    };
+    script = ''
+      set -euo pipefail
+      export HOME=${homeDir}
+      export CODEX_SESSION_ROOT=${homeDir}/.codex/sessions
+      ${pkgs.python3}/bin/python3 ${../../configs/home-assistant/codex_status.py} ${codexStatusPath}
+    '';
+  };
+
+  systemd.timers.codex-status-export = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "2min";
+      OnUnitActiveSec = "1min";
+      Persistent = true;
+      Unit = "codex-status-export.service";
+    };
   };
 
   systemd.timers."nix-flake-update" = {

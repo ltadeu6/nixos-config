@@ -1,0 +1,175 @@
+title: Visão Geral
+views:
+  - path: default_view
+    title: Visão Geral
+    type: masonry
+    cards:
+      - type: weather-forecast
+        entity: weather.forecast_casa
+        show_forecast: true
+        forecast_type: daily
+
+      - type: thermostat
+        entity: climate.ar
+        features:
+          - style: icons
+            type: climate-hvac-modes
+            hvac_modes:
+              - "off"
+              - heat
+              - cool
+              - dry
+              - fan_only
+
+      - type: custom:button-card
+        entity: sensor.pixel_7a_battery_level
+        icon: mdi:battery
+        name: Bateria Pixel 7a
+        show_icon: true
+        show_name: true
+        show_state: true
+        show_label: false
+        tap_action:
+          action: none
+        hold_action:
+          action: none
+        state_display: >
+          [[[
+            const value = Math.max(0, Math.min(100, Number(entity.state || 0)));
+            return `${Math.round(value)}%`;
+          ]]]
+        custom_fields:
+          bar: >
+            [[[
+              const value = Math.max(0, Math.min(100, Number(entity.state || 0)));
+              let color = '#50fa7b';
+              if (value < 20) color = '#ff5555';
+              else if (value < 50) color = '#ffb86c';
+              return `
+                <div style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${value}%;background:${color};border-radius:999px;"></div>
+                </div>
+              `;
+            ]]]
+        styles:
+          card:
+            - padding: 18px
+            - border-radius: 22px
+            - background: var(--ha-card-background, var(--card-background-color, #1c1c1c))
+            - box-shadow: none
+          grid:
+            - grid-template-areas: '"i n s" "bar bar bar"'
+            - grid-template-columns: min-content 1fr min-content
+            - grid-template-rows: min-content min-content
+            - column-gap: 12px
+            - row-gap: 12px
+          img_cell:
+            - justify-self: start
+            - align-self: center
+            - width: 34px
+            - height: 34px
+          icon:
+            - color: "#50fa7b"
+            - width: 24px
+            - height: 24px
+          name:
+            - justify-self: start
+            - align-self: center
+            - color: white
+            - font-size: 22px
+            - font-weight: 600
+          state:
+            - justify-self: end
+            - align-self: center
+            - color: white
+            - font-size: 18px
+            - font-weight: 700
+          custom_fields:
+            bar:
+              - margin-top: 2px
+
+      - type: custom:button-card
+        entity: sensor.codex_5h_left
+        triggers_update:
+          - sensor.codex_5h_reset_formatted
+          - sensor.codex_weekly_left
+          - sensor.codex_weekly_reset_formatted
+        icon: mdi:robot-outline
+        name: Uso do Codex
+        show_icon: true
+        show_name: true
+        show_state: false
+        show_label: false
+        tap_action:
+          action: none
+        hold_action:
+          action: none
+        custom_fields:
+          fiveh: >
+            [[[
+              const value = Math.max(0, Math.min(100, Number(states['sensor.codex_5h_left']?.state || 0)));
+              const reset = states['sensor.codex_5h_reset_formatted']?.state || 'indisponível';
+              let color = '#50fa7b';
+              if (value < 20) color = '#ff5555';
+              else if (value < 50) color = '#ffb86c';
+              return `
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px;">
+                  <span style="color:rgba(248,250,252,0.88);font-size:14px;font-weight:600;">Janela de 5h</span>
+                  <span style="color:#ffffff;font-size:16px;font-weight:700;">${Math.round(value)}%</span>
+                </div>
+                <div style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${value}%;background:${color};border-radius:999px;"></div>
+                </div>
+                <div style="margin-top:6px;color:rgba(226,232,240,0.72);font-size:12px;">Reinicia em ${reset}</div>
+              `;
+            ]]]
+          weekly: >
+            [[[
+              const value = Math.max(0, Math.min(100, Number(states['sensor.codex_weekly_left']?.state || 0)));
+              const reset = states['sensor.codex_weekly_reset_formatted']?.state || 'indisponível';
+              let color = '#8be9fd';
+              if (value < 30) color = '#ff5555';
+              else if (value < 65) color = '#ffb86c';
+              return `
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px;">
+                  <span style="color:rgba(248,250,252,0.88);font-size:14px;font-weight:600;">Limite semanal</span>
+                  <span style="color:#ffffff;font-size:16px;font-weight:700;">${Math.round(value)}%</span>
+                </div>
+                <div style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${value}%;background:${color};border-radius:999px;"></div>
+                </div>
+                <div style="margin-top:6px;color:rgba(226,232,240,0.72);font-size:12px;">Reinicia em ${reset}</div>
+              `;
+            ]]]
+        styles:
+          card:
+            - padding: 18px
+            - border-radius: 22px
+            - background: var(--ha-card-background, var(--card-background-color, #1c1c1c))
+            - box-shadow: none
+          grid:
+            - grid-template-areas: '"i n" "fiveh fiveh" "weekly weekly"'
+            - grid-template-columns: min-content 1fr
+            - grid-template-rows: min-content min-content min-content
+            - column-gap: 12px
+            - row-gap: 14px
+          img_cell:
+            - justify-self: start
+            - align-self: center
+            - width: 34px
+            - height: 34px
+          icon:
+            - color: "#8be9fd"
+            - width: 24px
+            - height: 24px
+          name:
+            - justify-self: start
+            - align-self: center
+            - color: white
+            - font-size: 22px
+            - font-weight: 600
+          custom_fields:
+            fiveh:
+              - margin-top: 4px
+            weekly:
+              - margin-top: 2px

@@ -387,7 +387,7 @@
       fi
 
       if [ -d "$dst_dir/$preferred_profile" ]; then
-        python3 - "$dst_dir" "$preferred_profile" <<'PY'
+        ${pkgs.python3}/bin/python3 - "$dst_dir" "$preferred_profile" <<'PY'
 import configparser
 import sys
 from pathlib import Path
