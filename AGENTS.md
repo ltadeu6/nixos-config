@@ -7,8 +7,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 ## Objetivo do repo
 
 - Este repo contem a configuracao pessoal de NixOS e Home Manager da maquina `Nixos`.
-- O setup e especifico para o usuario `ltadeu6` e para o host atual; nao trate este repo como template generico sem adaptar usuario, host, mounts, rede e segredos.
-- O flake principal gera apenas `nixosConfigurations.Nixos`.
+- O setup e especifico para o usuario `ltadeu6` e para os hosts versionados neste repo; nao trate este repo como template generico sem adaptar usuario, host, mounts, rede e segredos.
+- O flake principal gera `nixosConfigurations.Nixos` e `nixosConfigurations.NixOracle`.
 - O Home Manager esta embutido no modulo NixOS; nao existe fluxo separado de `home-manager switch`.
 
 ## Regras gerais para agentes
@@ -27,6 +27,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `flake.lock`: lockfile dos inputs do flake.
 - `hosts/Nixos/configuration.nix`: modulo principal do sistema.
 - `hosts/Nixos/hardware-configuration.nix`: hardware, filesystem e driver de video; gerado pelo NixOS.
+- `hosts/NixOracle/configuration.nix`: modulo minimo do VPS `NixOracle`.
+- `hosts/NixOracle/hardware-configuration.nix`: placeholder para o hardware do VPS; substitua pelo gerado no host.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.

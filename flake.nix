@@ -62,5 +62,12 @@
           }
         ];
       };
+
+      nixosConfigurations.NixOracle = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./hosts/NixOracle/configuration.nix
+        ];
+      };
     };
 }

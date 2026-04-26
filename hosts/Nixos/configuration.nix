@@ -121,6 +121,7 @@ in {
     nameservers = [ "8.8.8.8" "1.1.1.1" ];
     extraHosts = ''
       191.252.194.81 vps
+      204.216.130.111 NixOracle
     '';
     # Enable WireGuard
     # wireguard.interfaces = {
