@@ -9,6 +9,15 @@ let
       ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBitXAExTzEy48juhqlKANx/oYqnxpR7J6BCKsBXt8iH ltadeu6@nixos
     ''
   ];
+  jupyterEnv = pkgs.python3.withPackages (ps:
+    with ps; [
+      ipykernel
+      ipython
+      jupyterlab
+      matplotlib
+      numpy
+      pandas
+    ]);
 in {
   imports = [
     ./hardware-configuration.nix
@@ -19,6 +28,7 @@ in {
     fd
     git
     htop
+    jupyterEnv
     neovim
     ripgrep
     starship
@@ -40,6 +50,36 @@ in {
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PermitRootLogin = "prohibit-password";
+    };
+  };
+
+  systemd.tmpfiles.rules = [
+    "d /home/${username}/notebooks 0750 ${username} users -"
+  ];
+
+  environment.etc."jupyter/jupyter_server_config.py".text = ''
+    c.ServerApp.ip = "127.0.0.1"
+    c.ServerApp.port = 8888
+    c.ServerApp.open_browser = False
+    c.ServerApp.allow_remote_access = False
+    c.ServerApp.token = ""
+    c.ServerApp.password = ""
+    c.ServerApp.root_dir = "/home/${username}/notebooks"
+  '';
+
+  systemd.services.jupyter-lab = {
+    description = "Single-user JupyterLab";
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      User = username;
+      Group = "users";
+      WorkingDirectory = "/home/${username}/notebooks";
+      Restart = "on-failure";
+      RestartSec = 5;
+      ExecStart =
+        "${jupyterEnv}/bin/jupyter-lab --config=/etc/jupyter/jupyter_server_config.py";
     };
   };
 
