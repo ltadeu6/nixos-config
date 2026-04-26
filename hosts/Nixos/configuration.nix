@@ -880,7 +880,7 @@ in {
         rm -f "$repo_dir/flake.lock"
       fi
 
-      run_as_user /run/current-system/sw/bin/nix flake update --commit-lock-file "$repo_dir"
+      run_as_user /run/current-system/sw/bin/nix flake update --commit-lock-file --flake "$repo_dir"
       /run/current-system/sw/bin/nixos-rebuild switch --flake "$repo_dir#Nixos"
 
       if [ -n "$backup" ] && [ -f "$backup" ]; then
