@@ -838,7 +838,6 @@ in {
     serviceConfig = {
       Type = "oneshot";
       Environment = [
-        "HOME=${homeDir}"
         "GIT_AUTHOR_NAME=auto-upgrade"
         "GIT_AUTHOR_EMAIL=auto-upgrade@localhost"
         "GIT_COMMITTER_NAME=auto-upgrade"
@@ -850,7 +849,7 @@ in {
       export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:${pkgs.util-linux}/bin:/run/current-system/sw/bin"
 
       run_as_user() {
-        /run/current-system/sw/bin/runuser -u ${username} -- "$@"
+        env HOME="${homeDir}" /run/current-system/sw/bin/runuser -u ${username} -- "$@"
       }
 
       repo_dir="${repoDir}"
@@ -881,7 +880,7 @@ in {
       fi
 
       run_as_user /run/current-system/sw/bin/nix flake update --commit-lock-file --flake "$repo_dir"
-      /run/current-system/sw/bin/nixos-rebuild switch --flake "$repo_dir#Nixos"
+      /run/current-system/sw/bin/nixos-rebuild switch --flake "path:$repo_dir#Nixos"
 
       if [ -n "$backup" ] && [ -f "$backup" ]; then
         rm -f "$backup"
