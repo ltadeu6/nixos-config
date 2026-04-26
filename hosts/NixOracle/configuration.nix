@@ -58,14 +58,16 @@ in {
   ];
 
   environment.etc."jupyter/jupyter_server_config.py".text = ''
-    c.ServerApp.ip = "127.0.0.1"
+    c.ServerApp.ip = "0.0.0.0"
     c.ServerApp.port = 8888
     c.ServerApp.open_browser = False
-    c.ServerApp.allow_remote_access = False
-    c.ServerApp.token = ""
-    c.ServerApp.password = ""
+    c.ServerApp.allow_remote_access = True
     c.ServerApp.root_dir = "/home/${username}/notebooks"
+    c.PasswordIdentityProvider.hashed_password = "argon2:$argon2id$v=19$m=10240,t=10,p=8$aEgLh24uXxt6zrk9ndQM2Q$U4bfEybs+dRNl1cBPUOInen6nXShOIjWd67LmuGar1Q"
+    c.PasswordIdentityProvider.password_required = True
   '';
+
+  networking.firewall.allowedTCPPorts = [ 8888 ];
 
   systemd.services.jupyter-lab = {
     description = "Single-user JupyterLab";
