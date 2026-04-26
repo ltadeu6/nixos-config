@@ -6,6 +6,7 @@
 let
   username = "ltadeu6";
   homeDir = "/home/${username}";
+  repoDir = "${homeDir}/Projetos/Sistemas/nixos-config";
   codexStatusPath = "/var/lib/hass/codex_status.json";
   zenExtension = shortId: guid: {
     name = guid;
@@ -827,17 +828,15 @@ in {
   systemd.services."nix-flake-update" = {
     description = "Update flake.lock, commit, and rebuild";
     path = [
-      pkgs.findutils
       pkgs.git
       pkgs.gnugrep
-      pkgs.gnused
       pkgs.nixos-rebuild
       pkgs.nix
       pkgs.coreutils
+      pkgs.util-linux
     ];
     serviceConfig = {
       Type = "oneshot";
-      User = username;
       Environment = [
         "HOME=${homeDir}"
         "GIT_AUTHOR_NAME=auto-upgrade"
@@ -848,15 +847,19 @@ in {
     };
     script = ''
       set -euo pipefail
-      export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:/run/current-system/sw/bin"
+      export PATH="${pkgs.git}/bin:${pkgs.nix}/bin:${pkgs.util-linux}/bin:/run/current-system/sw/bin"
 
-      repo_dir="$(${pkgs.findutils}/bin/find "$HOME" -path '*/hosts/Nixos/configuration.nix' -print -quit | ${pkgs.gnused}/bin/sed 's#/hosts/Nixos/configuration\.nix##')"
-      if [ -z "$repo_dir" ]; then
-        echo "Skipping flake update: could not locate repo under $HOME"
+      run_as_user() {
+        /run/current-system/sw/bin/runuser -u ${username} -- "$@"
+      }
+
+      repo_dir="${repoDir}"
+      if [ ! -d "$repo_dir/.git" ] || [ ! -f "$repo_dir/hosts/Nixos/configuration.nix" ]; then
+        echo "Skipping flake update: repository not found at $repo_dir"
         exit 0
       fi
 
-      repo_status="$(git -C "$repo_dir" status --porcelain=v1 --untracked-files=normal)"
+      repo_status="$(run_as_user git -C "$repo_dir" status --porcelain=v1 --untracked-files=normal)"
       relevant_status="$(printf '%s\n' "$repo_status" | ${pkgs.gnugrep}/bin/grep -vE '^[ MARCUD?!]{2} flake\.lock$' || true)"
       if [ -n "$relevant_status" ]; then
         echo "Skipping flake update: repository has local changes"
@@ -877,7 +880,7 @@ in {
         rm -f "$repo_dir/flake.lock"
       fi
 
-      /run/current-system/sw/bin/nix flake update --commit-lock-file "$repo_dir"
+      run_as_user /run/current-system/sw/bin/nix flake update --commit-lock-file "$repo_dir"
       /run/current-system/sw/bin/nixos-rebuild switch --flake "$repo_dir#Nixos"
 
       if [ -n "$backup" ] && [ -f "$backup" ]; then
