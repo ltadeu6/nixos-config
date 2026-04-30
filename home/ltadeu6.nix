@@ -241,6 +241,7 @@
     direnv
     unzip
     unstable.codex
+    claude-code
     zip
     file-roller
     clang-tools
