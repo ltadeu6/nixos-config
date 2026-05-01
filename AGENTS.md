@@ -674,5 +674,6 @@ Cuidados:
 
 ## Commits
 
+- Sempre faca commit das mudancas feitas por agentes antes de encerrar a tarefa, salvo pedido explicito em contrario.
 - Use mensagens curtas e descritivas em ingles.
 - Se o GPG falhar, prefira desabilitar assinatura naquele commit em vez de bloquear a mudanca.
