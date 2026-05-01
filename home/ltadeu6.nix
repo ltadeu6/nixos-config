@@ -445,5 +445,10 @@ PY
     };
   };
 
+  programs.mangohud = {
+    enable = true;
+    enableSessionWide = true;
+  };
+
   programs.home-manager.enable = true;
 }
