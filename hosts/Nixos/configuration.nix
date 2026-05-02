@@ -788,7 +788,7 @@ in {
     mode = "0755";
     text = ''
       #!/bin/sh
-      exec ${pkgs.antimicrox}/bin/antimicrox --unload
+      exec ${pkgs.procps}/bin/pkill -x antimicrox
     '';
   };
 
