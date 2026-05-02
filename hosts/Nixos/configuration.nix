@@ -699,7 +699,7 @@ in {
           </slot>
         </slots>
       </button>
-      <button index="8">
+      <button index="9">
         <slots>
           <slot>
             <path>/etc/antimicrox/disable-controller.sh</path>
@@ -707,7 +707,7 @@ in {
           </slot>
         </slots>
       </button>
-      <button index="9">
+      <button index="8">
         <slots>
           <slot>
             <path>/run/current-system/sw/bin/hyprctl</path>
