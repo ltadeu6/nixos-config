@@ -214,6 +214,7 @@
     waybar
     hyprpaper
     sshfs
+    pass
     papirus-icon-theme
     trash-cli
     libreoffice
