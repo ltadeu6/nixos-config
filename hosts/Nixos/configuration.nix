@@ -789,6 +789,7 @@ in {
     text = ''
       #!/bin/sh
       ${pkgs.antimicrox}/bin/antimicrox --unload 1 >/dev/null 2>&1 || true
+      ${pkgs.procps}/bin/pkill -x .antimicrox-wrapped >/dev/null 2>&1 || true
       ${pkgs.procps}/bin/pkill -x antimicrox >/dev/null 2>&1 || true
       exec ${pkgs.procps}/bin/pkill -x AntiMicroX
     '';
