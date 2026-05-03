@@ -788,7 +788,7 @@ in {
     mode = "0755";
     text = ''
       #!/bin/sh
-      exec ${pkgs.procps}/bin/pkill -x .antimicrox-wrapped
+      exec ${pkgs.procps}/bin/pkill -f '/etc/antimicrox/controller-mouse\.amgp'
     '';
   };
 
