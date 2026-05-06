@@ -129,14 +129,15 @@
         "flake-utils": "flake-utils",
         "home-manager": "home-manager_3",
         "nix-openclaw-tools": "nix-openclaw-tools",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_3",
+        "qmd": "qmd"
       },
       "locked": {
-        "lastModified": 1778001770,
-        "narHash": "sha256-47RQW9wNZjEql+l6ONkB+qB6vVGsC5r+Pi+5uCdSdQg=",
+        "lastModified": 1778078268,
+        "narHash": "sha256-K+ipifCMotg00/hZ9qZjEtlNv7pwzBUwPKiucfimnj4=",
         "owner": "openclaw",
         "repo": "nix-openclaw",
-        "rev": "4a918c46eeecb052d827a3ffb50fb47d2a78c163",
+        "rev": "4ed579792e4d9a8a722d29842ef5a962d24b7e3f",
         "type": "github"
       },
       "original": {
@@ -150,11 +151,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1777976020,
-        "narHash": "sha256-IsgLwW0Y6JYiWXbxmzN1FDO0//Osu2YpeID1tFMbwkk=",
+        "lastModified": 1778060041,
+        "narHash": "sha256-tXWkN1VnwFG8XlRqW/e7VwbKnUfyU9tB7YDm9QHJXTY=",
         "owner": "openclaw",
         "repo": "nix-openclaw-tools",
-        "rev": "08955054f466e2eb55628763c1d7ee2de5af9f6d",
+        "rev": "4c1cee3c7eaf68f9de0f756be1484534f5bb5f34",
         "type": "github"
       },
       "original": {
@@ -229,17 +230,43 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1777673416,
-        "narHash": "sha256-5c2POKPOjU40Kh0MirOdScBLG0bu9TAuPYAtPRNZMBs=",
+        "lastModified": 1778003029,
+        "narHash": "sha256-q/nkKLDtHIyLjZpKhWk3cSK5IYsFqtMd6UtXF3ddjgA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "26ef669cffa904b6f6832ab57b77892a37c1a671",
+        "rev": "0c88e1f2bdb93d5999019e99cb0e61e1fe2af4c5",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
         "ref": "nixos-25.11",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "qmd": {
+      "inputs": {
+        "flake-utils": [
+          "nix-openclaw",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nix-openclaw",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1775429264,
+        "narHash": "sha256-bqIVaNRTa8H5vrw3RwsD7QdtTa0xNvRuEVzlzE1hIBQ=",
+        "owner": "tobi",
+        "repo": "qmd",
+        "rev": "65cd1b3fd02891d1ee0eefa751620918664fa321",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tobi",
+        "ref": "v2.1.0",
+        "repo": "qmd",
         "type": "github"
       }
     },
