@@ -250,7 +250,6 @@ Este modulo concentra:
   - `xdg.userDirs`
   - `spotifyd`
   - `opencode`
-  - `codex`
   - `programs.home-manager.enable = true`
 - session variables:
   - `MANPAGER`
@@ -281,9 +280,6 @@ Este modulo concentra:
 - OpenCode:
   - publica `~/.config/opencode/opencode.json`
   - usa `ollama/qwen2.5-coder:7b` como modelo padrao
-- Codex:
-  - adiciona o perfil `qwen` em `~/.codex/config.toml`
-  - usa `qwen2.5-coder:7b` via `ollama`
 - Wofi:
   - publica `config`, `style.css`, `menu`, `menu.css`
 

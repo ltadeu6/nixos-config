@@ -453,26 +453,6 @@ PY
       fi
     '';
 
-  home.activation.codexQwenProfile =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      set -euo pipefail
-      codex_config="$HOME/.codex/config.toml"
-
-      mkdir -p "$(dirname "$codex_config")"
-
-      if grep -q '^\[profiles\.qwen\]$' "$codex_config" 2>/dev/null; then
-        :
-      else
-        cat <<'EOF' >> "$codex_config"
-
-[profiles.qwen]
-model = "qwen2.5-coder:7b"
-oss = true
-local_provider = "ollama"
-EOF
-      fi
-    '';
-
   services.spotifyd = {
     enable = true;
     settings.global = {
