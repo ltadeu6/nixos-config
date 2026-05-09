@@ -279,7 +279,7 @@ Este modulo concentra:
   - publica `config.el`, `init.el`, `packages.el`
 - OpenCode:
   - publica `~/.config/opencode/opencode.json`
-  - usa `opencode.json` no root do repo para carregar contexto do projeto
+  - usa `OPENCODE.md` e `opencode.json` no root do repo para carregar contexto do projeto
   - usa `ollama/qwen2.5-coder:7b` como modelo padrao
 - Wofi:
   - publica `config`, `style.css`, `menu`, `menu.css`
