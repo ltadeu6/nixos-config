@@ -244,6 +244,7 @@
     direnv
     unzip
     unstable.codex
+    unstable.opencode
     claude-code
     zip
     file-roller
