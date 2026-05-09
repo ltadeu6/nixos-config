@@ -249,6 +249,7 @@ Este modulo concentra:
   - `xdg.mimeApps`
   - `xdg.userDirs`
   - `spotifyd`
+  - `opencode`
   - `programs.home-manager.enable = true`
 - session variables:
   - `MANPAGER`
@@ -276,6 +277,9 @@ Este modulo concentra:
   - publica `switch_sink.sh`
 - Doom:
   - publica `config.el`, `init.el`, `packages.el`
+- OpenCode:
+  - publica `~/.config/opencode/opencode.json`
+  - usa `ollama/qwen2.5-coder:7b` como modelo padrao
 - Wofi:
   - publica `config`, `style.css`, `menu`, `menu.css`
 

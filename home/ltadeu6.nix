@@ -244,6 +244,7 @@
     direnv
     unzip
     unstable.codex
+    unstable.opencode
     claude-code
     zip
     file-roller
@@ -355,6 +356,19 @@
     ".config/doom/config.el".source = ../configs/doom/config.el;
     ".config/doom/init.el".source = ../configs/doom/init.el;
     ".config/doom/packages.el".source = ../configs/doom/packages.el;
+
+    ".config/opencode/opencode.json".text = builtins.toJSON {
+      "$schema" = "https://opencode.ai/config.json";
+      model = "ollama/qwen2.5-coder:7b";
+      provider = {
+        ollama = {
+          npm = "@ai-sdk/openai-compatible";
+          name = "Ollama (local)";
+          options.baseURL = "http://localhost:11434/v1";
+          models."qwen2.5-coder:7b".name = "Qwen2.5 Coder 7B";
+        };
+      };
+    };
 
     ".config/wofi/config".source = ../configs/wofi/config;
     ".config/wofi/style.css".source = ../configs/wofi/style.css;

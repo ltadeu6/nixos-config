@@ -393,6 +393,7 @@ in {
       };
       loadModels = [
         "gemma4:e4b"
+        "qwen2.5-coder:7b"
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";
