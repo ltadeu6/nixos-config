@@ -1,5 +1,17 @@
 { config, pkgs, lib, ... }:
 
+let
+  opencodeWithLibstdcxx = pkgs.symlinkJoin {
+    name = "opencode";
+    paths = [ pkgs.unstable.opencode ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/opencode \
+        --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}
+    '';
+  };
+in
+
 {
   home.username = "ltadeu6";
   home.homeDirectory = "/home/ltadeu6";
@@ -244,7 +256,7 @@
     direnv
     unzip
     unstable.codex
-    unstable.opencode
+    opencodeWithLibstdcxx
     claude-code
     zip
     file-roller

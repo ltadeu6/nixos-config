@@ -304,6 +304,7 @@ Pacotes de sessao e desktop usados diretamente pelos configs:
 Pacotes relevantes para trabalho/dev presentes no estado atual:
 
 - `unstable.codex`
+- `opencode` empacotado via Home Manager com `libstdc++.so.6` no `LD_LIBRARY_PATH`
 - `vscode`
 - `clang-tools`
 - `nodejs`
@@ -562,6 +563,7 @@ Itens que um agente deve verificar antes de mexer:
 - `pactl` e necessario para `configs/waybar/switch_sink.sh`.
 - `Home Assistant` local e `~/.config/secrets/ha_token` sao dependencias externas do controle de ar.
 - `open-webui` depende do `ollama` configurado no host.
+- `OLLAMA_CONTEXT_LENGTH` esta em `32768`; reduzir para 8k quebra prompts grandes de agentes com schemas de ferramentas.
 
 ### Home Assistant / Codex status
 

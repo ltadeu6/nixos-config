@@ -388,8 +388,8 @@ in {
       acceleration = "cuda";
       host = "[::]";
       environmentVariables = {
-        # Lower default context to keep KV cache smaller (faster + more likely to stay on GPU).
-        OLLAMA_CONTEXT_LENGTH = "8192";
+        # Agent CLIs send large prompts with tool schemas; 8k truncates tool-use instructions.
+        OLLAMA_CONTEXT_LENGTH = "32768";
       };
       loadModels = [
         "gemma4:e4b"
