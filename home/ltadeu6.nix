@@ -212,7 +212,8 @@
     texlive.combined.scheme-full
     foliate
     aria2
-    uget
+    motrix
+    varia
     waybar
     hyprpaper
     sshfs
