@@ -126,6 +126,16 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `openclaw/documents/` so importa quando `enableOpenClaw = true`.
 - Nao altere `openclaw/documents/` achando que isso afetara o sistema atual sem antes verificar se o modulo esta habilitado.
 
+### Ollama / modelos locais
+
+- Fonte principal: `services.ollama` em `hosts/Nixos/configuration.nix`.
+- Modelos sincronizados hoje:
+  - `gemma4:e4b`
+  - `gpt-oss:20b`
+  - `qwen2.5-coder:7b`
+- `gpt-oss:20b` e o candidato preferido para testar agentes executores locais.
+- `qwen2.5-coder:7b` pode funcionar para chat/codigo, mas mostrou baixa confiabilidade para tool-calling em agentes.
+
 ## Estrutura funcional atual
 
 ### `hosts/Nixos/configuration.nix`
