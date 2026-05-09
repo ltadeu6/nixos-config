@@ -211,6 +211,7 @@
     tor-browser
     texlive.combined.scheme-full
     foliate
+    aria2
     varia
     waybar
     hyprpaper
