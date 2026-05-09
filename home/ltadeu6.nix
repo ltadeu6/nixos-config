@@ -211,8 +211,6 @@
     tor-browser
     texlive.combined.scheme-full
     foliate
-    aria2
-    motrix
     varia
     waybar
     hyprpaper
