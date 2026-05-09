@@ -389,7 +389,7 @@ in {
       host = "[::]";
       environmentVariables = {
         # Agent CLIs send large prompts with tool schemas; 8k truncates tool-use instructions.
-        OLLAMA_CONTEXT_LENGTH = "32768";
+        OLLAMA_CONTEXT_LENGTH = "64000";
       };
       loadModels = [
         "gemma4:e4b"
