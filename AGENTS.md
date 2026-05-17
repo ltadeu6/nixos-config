@@ -612,6 +612,7 @@ Estado atual:
 - A automacao `secar_roupas_start` inicia o script ao ligar o helper.
 - A automacao `secar_roupas_stop` desliga `climate.ar` ao desligar o helper.
 - O script `script.secar_roupas_com_ar_condicionado` usa `climate.ar`.
+- As dashboards `ui-lovelace.yaml` e `ui-overview.yaml` exibem um botao para alternar `input_boolean.secar_roupas`.
 - A temperatura vem de `state_attr('climate.ar', 'current_temperature')`; nao ha sensor de umidade dedicado.
 - O modo dominante e `dry`.
 - `heat` so e usado abaixo de 21 C, com setpoint 24 C.

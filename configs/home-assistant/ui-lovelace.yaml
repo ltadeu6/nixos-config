@@ -22,6 +22,78 @@ views:
               - fan_only
 
       - type: custom:button-card
+        entity: input_boolean.secar_roupas
+        icon: mdi:hanger
+        name: Secar roupas
+        show_icon: true
+        show_name: true
+        show_state: false
+        show_label: false
+        tap_action:
+          action: toggle
+        hold_action:
+          action: more-info
+        custom_fields:
+          status: >
+            [[[
+              return entity.state === 'on' ? 'Secagem ativa' : 'Toque para iniciar';
+            ]]]
+          mode: >
+            [[[
+              return entity.state === 'on' ? 'Dry dominante, heat so se esfriar' : 'Ar desligado ao parar';
+            ]]]
+        styles:
+          card:
+            - padding: 18px
+            - border-radius: 22px
+            - background: |
+                [[[
+                  return entity.state === 'on'
+                    ? 'linear-gradient(135deg, rgba(255,184,108,0.24), rgba(80,250,123,0.10))'
+                    : 'var(--ha-card-background, var(--card-background-color, #1c1c1c))';
+                ]]]
+            - box-shadow: none
+          grid:
+            - grid-template-areas: '"i n" "i status" "i mode"'
+            - grid-template-columns: min-content 1fr
+            - grid-template-rows: min-content min-content min-content
+            - column-gap: 12px
+            - row-gap: 4px
+          img_cell:
+            - justify-self: start
+            - align-self: center
+            - width: 42px
+            - height: 42px
+            - border-radius: 16px
+            - background: rgba(255,255,255,0.10)
+          icon:
+            - color: |
+                [[[
+                  return entity.state === 'on' ? '#ffb86c' : '#8be9fd';
+                ]]]
+            - width: 24px
+            - height: 24px
+          name:
+            - justify-self: start
+            - align-self: end
+            - color: white
+            - font-size: 22px
+            - font-weight: 700
+          custom_fields:
+            status:
+              - justify-self: start
+              - color: |
+                  [[[
+                    return entity.state === 'on' ? '#ffb86c' : 'rgba(248,250,252,0.82)';
+                  ]]]
+              - font-size: 15px
+              - font-weight: 700
+            mode:
+              - justify-self: start
+              - color: rgba(226,232,240,0.68)
+              - font-size: 12px
+
+      - type: custom:button-card
         entity: sensor.pixel_7a_battery_level
         icon: mdi:battery
         name: Bateria Pixel 7a
