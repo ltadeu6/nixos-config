@@ -1281,23 +1281,6 @@ in {
     };
   };
 
-  systemd.services.hass-localtuya-install = {
-    description = "Install LocalTuya custom component for Home Assistant";
-    before = [ "home-assistant.service" ];
-    wantedBy = [ "home-assistant.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "hass";
-      RemainAfterExit = true;
-    };
-    script = ''
-      mkdir -p /var/lib/hass/custom_components
-      rm -rf /var/lib/hass/custom_components/localtuya
-      cp -r ${../../configs/home-assistant/custom_components/localtuya} /var/lib/hass/custom_components/localtuya
-      chmod -R u+rw /var/lib/hass/custom_components/localtuya
-    '';
-  };
-
   systemd.timers."nix-flake-update" = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
