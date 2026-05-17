@@ -614,16 +614,18 @@ Estado atual:
 - O script `script.secar_roupas_com_ar_condicionado` usa `climate.ar`.
 - As dashboards `ui-lovelace.yaml` e `ui-overview.yaml` exibem um botao para alternar `input_boolean.secar_roupas`.
 - A temperatura vem de `state_attr('climate.ar', 'current_temperature')`; nao ha sensor de umidade dedicado.
-- O modo dominante e `dry`.
-- `heat` so e usado abaixo de 21 C, com setpoint 24 C.
-- `cool` so entra em pulsos curtos se o `dry` estiver idle e a temperatura permitir.
+- A estrategia alterna aquecimento moderado para evaporar agua das roupas e `cool`/`dry` para condensar e drenar a umidade.
+- No inicio, se a sala estiver abaixo de 24 C, o script usa `heat` com setpoint 25 C por ate 15 minutos.
+- Durante o loop, abaixo de 21 C o script usa `heat` com setpoint 24 C por ate 20 minutos para recuperar temperatura.
+- Entre 23 C e 28 C, o script usa pulsos planejados de `cool` com setpoint 22 C por ate 15 minutos, depois volta para `dry` por ate 40 minutos.
+- Acima de 28 C, o script nunca aquece; usa `cool` com setpoint 23 C por ate 20 minutos e depois `dry`.
+- O tempo maximo de execucao e 6 horas; ao expirar, o script desliga `climate.ar` e desliga `input_boolean.secar_roupas`.
 - Fan mode e definido apenas se o valor existir em `state_attr('climate.ar', 'fan_modes')`; tenta `medium`/`high` e cai para `auto`.
 
 Cuidados:
 
 - Se trocar a entidade do ar, atualize `haAirConditioner` no `let` de `hosts/Nixos/configuration.nix`.
 - Se trocar o helper, atualize `haLaundryDryingToggle` no mesmo `let`.
-- Se a integracao do ar nao expuser `hvac_action = idle`, o fallback com `cool` nao dispara; o script continua funcionando em `dry`/`heat`.
 - Nao mova essa logica para arquivos em `/var/lib/hass` ou pela UI sem refletir a mudanca no repo.
 
 ### Home Assistant / dashboard do Codex

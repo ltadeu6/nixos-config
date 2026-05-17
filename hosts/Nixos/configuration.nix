@@ -22,6 +22,10 @@ let
   haSetFanMode = fan_mode:
     haClimateAction "climate.set_fan_mode" { inherit fan_mode; };
   haTurnOffClimate = haClimateAction "climate.turn_off" { };
+  haTurnOffDryingToggle = {
+    action = "input_boolean.turn_off";
+    target.entity_id = haLaundryDryingToggle;
+  };
   haWaitForDryingToggleOff = timeout: {
     wait_template = "{{ is_state('${haLaundryDryingToggle}', 'off') }}";
     inherit timeout;
@@ -51,7 +55,12 @@ let
     (haSetHvacMode "dry")
     (haSetFanModeIfAvailable "medium" "auto")
   ];
-  haHeatCycle = [
+  haHeatEvaporationCycle = [
+    (haSetHvacMode "heat")
+    (haSetTemperature 25)
+    (haSetFanModeIfAvailable "high" "auto")
+  ];
+  haHeatRecoveryCycle = [
     (haSetHvacMode "heat")
     (haSetTemperature 24)
     (haSetFanModeIfAvailable "high" "auto")
@@ -59,6 +68,11 @@ let
   haCoolPulse = [
     (haSetHvacMode "cool")
     (haSetTemperature 22)
+    (haSetFanModeIfAvailable "medium" "auto")
+  ];
+  haHotRoomCoolPulse = [
+    (haSetHvacMode "cool")
+    (haSetTemperature 23)
     (haSetFanModeIfAvailable "medium" "auto")
   ];
   zenExtension = shortId: guid: {
@@ -305,10 +319,33 @@ in {
           secar_roupas_com_ar_condicionado = {
             alias = "Secar roupas com ar-condicionado";
             description =
-              "Seca roupas em uma sala fechada usando Dry como modo dominante, Heat apenas contra frio excessivo e Cool em pulsos curtos quando o Dry fica idle.";
+              "Seca roupas em sala fechada alternando aquecimento moderado para evaporar agua e Cool/Dry para condensar e drenar umidade.";
             mode = "restart";
             icon = "mdi:hanger";
             sequence = [
+              {
+                condition = "state";
+                entity_id = haLaundryDryingToggle;
+                state = "on";
+              }
+              {
+                variables = {
+                  started_at = "{{ as_timestamp(now()) }}";
+                  max_runtime_seconds = 21600;
+                  current_temp =
+                    "{{ state_attr('${haAirConditioner}', 'current_temperature') | float(24) }}";
+                };
+              }
+              {
+                choose = [{
+                  conditions = [{
+                    condition = "template";
+                    value_template = "{{ current_temp < 24 }}";
+                  }];
+                  sequence = haHeatEvaporationCycle
+                    ++ [ (haWaitForDryingToggleOff "00:15:00") ];
+                }];
+              }
               {
                 condition = "state";
                 entity_id = haLaundryDryingToggle;
@@ -318,18 +355,23 @@ in {
               (haWaitForDryingToggleOff "00:30:00")
               {
                 repeat = {
-                  while = [{
-                    condition = "state";
-                    entity_id = haLaundryDryingToggle;
-                    state = "on";
-                  }];
+                  while = [
+                    {
+                      condition = "state";
+                      entity_id = haLaundryDryingToggle;
+                      state = "on";
+                    }
+                    {
+                      condition = "template";
+                      value_template =
+                        "{{ (as_timestamp(now()) - (started_at | float(0))) < (max_runtime_seconds | float(0)) }}";
+                    }
+                  ];
                   sequence = [
                     {
                       variables = {
                         current_temp =
                           "{{ state_attr('${haAirConditioner}', 'current_temperature') | float(24) }}";
-                        current_action =
-                          "{{ state_attr('${haAirConditioner}', 'hvac_action') | default('', true) | string | lower }}";
                       };
                     }
                     {
@@ -340,7 +382,7 @@ in {
                             value_template =
                               "{{ current_temp < 21 }}";
                           }];
-                          sequence = haHeatCycle ++ [
+                          sequence = haHeatRecoveryCycle ++ [
                             (haWaitForDryingToggleOff "00:20:00")
                             {
                               choose = [{
@@ -350,7 +392,7 @@ in {
                                   state = "on";
                                 }];
                                 sequence = haDryCycle
-                                  ++ [ (haWaitForDryingToggleOff "00:10:00") ];
+                                  ++ [ (haWaitForDryingToggleOff "00:35:00") ];
                               }];
                             }
                           ];
@@ -361,32 +403,18 @@ in {
                             value_template =
                               "{{ current_temp >= 28 }}";
                           }];
-                          sequence = [
+                          sequence = haHotRoomCoolPulse ++ [
+                            (haWaitForDryingToggleOff "00:20:00")
                             {
                               choose = [{
                                 conditions = [{
-                                  condition = "template";
-                                  value_template =
-                                    "{{ current_action == 'idle' }}";
+                                  condition = "state";
+                                  entity_id = haLaundryDryingToggle;
+                                  state = "on";
                                 }];
-                                sequence = haCoolPulse ++ [
-                                  (haWaitForDryingToggleOff "00:20:00")
-                                  {
-                                    choose = [{
-                                      conditions = [{
-                                        condition = "state";
-                                        entity_id = haLaundryDryingToggle;
-                                        state = "on";
-                                      }];
-                                      sequence = haDryCycle ++ [
-                                        (haWaitForDryingToggleOff "00:40:00")
-                                      ];
-                                    }];
-                                  }
-                                ];
+                                sequence = haDryCycle
+                                  ++ [ (haWaitForDryingToggleOff "00:35:00") ];
                               }];
-                              default = haDryCycle
-                                ++ [ (haWaitForDryingToggleOff "00:45:00") ];
                             }
                           ];
                         }
@@ -395,9 +423,8 @@ in {
                             condition = "template";
                             value_template = ''
                               {{
-                                current_temp > 22
+                                current_temp >= 23
                                 and current_temp < 28
-                                and current_action == 'idle'
                               }}
                             '';
                           }];
@@ -424,6 +451,16 @@ in {
                 };
               }
               haTurnOffClimate
+              {
+                choose = [{
+                  conditions = [{
+                    condition = "state";
+                    entity_id = haLaundryDryingToggle;
+                    state = "on";
+                  }];
+                  sequence = [ haTurnOffDryingToggle ];
+                }];
+              }
             ];
           };
         };

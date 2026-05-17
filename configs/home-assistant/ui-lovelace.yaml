@@ -40,7 +40,7 @@ views:
             ]]]
           mode: >
             [[[
-              return entity.state === 'on' ? 'Dry dominante, heat so se esfriar' : 'Ar desligado ao parar';
+              return entity.state === 'on' ? 'Heat evapora, Cool/Dry drena' : 'Ar desligado ao parar';
             ]]]
         styles:
           card:
