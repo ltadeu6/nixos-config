@@ -231,7 +231,7 @@ views:
             - width: 34px
             - height: 34px
           icon:
-            - color: "#8be9fd"
+            - color: "#ffb86c"
             - width: 24px
             - height: 24px
           name:
