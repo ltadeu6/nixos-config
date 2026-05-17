@@ -8,6 +8,59 @@ let
   homeDir = "/home/${username}";
   repoDir = "${homeDir}/Projetos/Sistemas/nixos-config";
   codexStatusPath = "/var/lib/hass/codex_status.json";
+  haAirConditioner = "climate.ar";
+  haLaundryDryingToggle = "input_boolean.secar_roupas";
+  haClimateAction = action: data: {
+    inherit action;
+    target.entity_id = haAirConditioner;
+    inherit data;
+  };
+  haSetHvacMode = mode:
+    haClimateAction "climate.set_hvac_mode" { hvac_mode = mode; };
+  haSetTemperature = temperature:
+    haClimateAction "climate.set_temperature" { inherit temperature; };
+  haSetFanMode = fan_mode:
+    haClimateAction "climate.set_fan_mode" { inherit fan_mode; };
+  haTurnOffClimate = haClimateAction "climate.turn_off" { };
+  haWaitForDryingToggleOff = timeout: {
+    wait_template = "{{ is_state('${haLaundryDryingToggle}', 'off') }}";
+    inherit timeout;
+    continue_on_timeout = true;
+  };
+  haSetFanModeIfAvailable = preferred: fallback: {
+    choose = [
+      {
+        conditions = [{
+          condition = "template";
+          value_template =
+            "{{ '${preferred}' in (state_attr('${haAirConditioner}', 'fan_modes') or []) }}";
+        }];
+        sequence = [ (haSetFanMode preferred) ];
+      }
+      {
+        conditions = [{
+          condition = "template";
+          value_template =
+            "{{ '${fallback}' in (state_attr('${haAirConditioner}', 'fan_modes') or []) }}";
+        }];
+        sequence = [ (haSetFanMode fallback) ];
+      }
+    ];
+  };
+  haDryCycle = [
+    (haSetHvacMode "dry")
+    (haSetFanModeIfAvailable "medium" "auto")
+  ];
+  haHeatCycle = [
+    (haSetHvacMode "heat")
+    (haSetTemperature 24)
+    (haSetFanModeIfAvailable "high" "auto")
+  ];
+  haCoolPulse = [
+    (haSetHvacMode "cool")
+    (haSetTemperature 22)
+    (haSetFanModeIfAvailable "medium" "auto")
+  ];
   zenExtension = shortId: guid: {
     name = guid;
     value = {
@@ -239,6 +292,166 @@ in {
         };
 
         default_config = { };
+
+        input_boolean = {
+          secar_roupas = {
+            name = "Secar roupas";
+            icon = "mdi:hanger";
+            initial = false;
+          };
+        };
+
+        script = {
+          secar_roupas_com_ar_condicionado = {
+            alias = "Secar roupas com ar-condicionado";
+            description =
+              "Seca roupas em uma sala fechada usando Dry como modo dominante, Heat apenas contra frio excessivo e Cool em pulsos curtos quando o Dry fica idle.";
+            mode = "restart";
+            icon = "mdi:hanger";
+            sequence = [
+              {
+                condition = "state";
+                entity_id = haLaundryDryingToggle;
+                state = "on";
+              }
+            ] ++ haDryCycle ++ [
+              (haWaitForDryingToggleOff "00:30:00")
+              {
+                repeat = {
+                  while = [{
+                    condition = "state";
+                    entity_id = haLaundryDryingToggle;
+                    state = "on";
+                  }];
+                  sequence = [
+                    {
+                      variables = {
+                        current_temp =
+                          "{{ state_attr('${haAirConditioner}', 'current_temperature') | float(24) }}";
+                        current_action =
+                          "{{ state_attr('${haAirConditioner}', 'hvac_action') | default('', true) | string | lower }}";
+                      };
+                    }
+                    {
+                      choose = [
+                        {
+                          conditions = [{
+                            condition = "template";
+                            value_template =
+                              "{{ current_temp < 21 }}";
+                          }];
+                          sequence = haHeatCycle ++ [
+                            (haWaitForDryingToggleOff "00:20:00")
+                            {
+                              choose = [{
+                                conditions = [{
+                                  condition = "state";
+                                  entity_id = haLaundryDryingToggle;
+                                  state = "on";
+                                }];
+                                sequence = haDryCycle
+                                  ++ [ (haWaitForDryingToggleOff "00:10:00") ];
+                              }];
+                            }
+                          ];
+                        }
+                        {
+                          conditions = [{
+                            condition = "template";
+                            value_template =
+                              "{{ current_temp >= 28 }}";
+                          }];
+                          sequence = [
+                            {
+                              choose = [{
+                                conditions = [{
+                                  condition = "template";
+                                  value_template =
+                                    "{{ current_action == 'idle' }}";
+                                }];
+                                sequence = haCoolPulse ++ [
+                                  (haWaitForDryingToggleOff "00:20:00")
+                                  {
+                                    choose = [{
+                                      conditions = [{
+                                        condition = "state";
+                                        entity_id = haLaundryDryingToggle;
+                                        state = "on";
+                                      }];
+                                      sequence = haDryCycle ++ [
+                                        (haWaitForDryingToggleOff "00:40:00")
+                                      ];
+                                    }];
+                                  }
+                                ];
+                              }];
+                              default = haDryCycle
+                                ++ [ (haWaitForDryingToggleOff "00:45:00") ];
+                            }
+                          ];
+                        }
+                        {
+                          conditions = [{
+                            condition = "template";
+                            value_template = ''
+                              {{
+                                current_temp > 22
+                                and current_temp < 28
+                                and current_action == 'idle'
+                              }}
+                            '';
+                          }];
+                          sequence = haCoolPulse ++ [
+                            (haWaitForDryingToggleOff "00:15:00")
+                            {
+                              choose = [{
+                                conditions = [{
+                                  condition = "state";
+                                  entity_id = haLaundryDryingToggle;
+                                  state = "on";
+                                }];
+                                sequence = haDryCycle
+                                  ++ [ (haWaitForDryingToggleOff "00:40:00") ];
+                              }];
+                            }
+                          ];
+                        }
+                      ];
+                      default = haDryCycle
+                        ++ [ (haWaitForDryingToggleOff "00:45:00") ];
+                    }
+                  ];
+                };
+              }
+              haTurnOffClimate
+            ];
+          };
+        };
+
+        automation = [
+          {
+            id = "secar_roupas_start";
+            alias = "Iniciar secagem de roupas";
+            mode = "single";
+            trigger = [{
+              platform = "state";
+              entity_id = haLaundryDryingToggle;
+              to = "on";
+            }];
+            action = [{ action = "script.secar_roupas_com_ar_condicionado"; }];
+          }
+          {
+            id = "secar_roupas_stop";
+            alias = "Parar secagem de roupas";
+            mode = "single";
+            trigger = [{
+              platform = "state";
+              entity_id = haLaundryDryingToggle;
+              to = "off";
+            }];
+            action = [ haTurnOffClimate ];
+          }
+        ];
 
         command_line = [
           {

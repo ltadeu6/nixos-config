@@ -600,6 +600,31 @@ Cuidados:
 - Se mover a origem dos logs do Codex, ajuste `CODEX_SESSION_ROOT` no servico `codex-status-export`.
 - O dashboard do Home Assistant continua em storage mode; a fonte declarativa aqui cobre os sensores, nao os cards da UI.
 
+### Home Assistant / secagem de roupas
+
+Fonte principal:
+
+- `services.home-assistant.config` em `hosts/Nixos/configuration.nix`
+
+Estado atual:
+
+- O helper `input_boolean.secar_roupas` e declarado pelo repo.
+- A automacao `secar_roupas_start` inicia o script ao ligar o helper.
+- A automacao `secar_roupas_stop` desliga `climate.ar` ao desligar o helper.
+- O script `script.secar_roupas_com_ar_condicionado` usa `climate.ar`.
+- A temperatura vem de `state_attr('climate.ar', 'current_temperature')`; nao ha sensor de umidade dedicado.
+- O modo dominante e `dry`.
+- `heat` so e usado abaixo de 21 C, com setpoint 24 C.
+- `cool` so entra em pulsos curtos se o `dry` estiver idle e a temperatura permitir.
+- Fan mode e definido apenas se o valor existir em `state_attr('climate.ar', 'fan_modes')`; tenta `medium`/`high` e cai para `auto`.
+
+Cuidados:
+
+- Se trocar a entidade do ar, atualize `haAirConditioner` no `let` de `hosts/Nixos/configuration.nix`.
+- Se trocar o helper, atualize `haLaundryDryingToggle` no mesmo `let`.
+- Se a integracao do ar nao expuser `hvac_action = idle`, o fallback com `cool` nao dispara; o script continua funcionando em `dry`/`heat`.
+- Nao mova essa logica para arquivos em `/var/lib/hass` ou pela UI sem refletir a mudanca no repo.
+
 ### Home Assistant / dashboard do Codex
 
 Arquivo principal:
