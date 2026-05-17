@@ -9,8 +9,6 @@ let
   repoDir = "${homeDir}/Projetos/Sistemas/nixos-config";
   codexStatusPath = "/var/lib/hass/codex_status.json";
   claudeUsagePath = "/var/lib/hass/claude_usage.json";
-  luzSalaBridgeUrl = "http://192.168.1.105:8766";
-  luzSalaBridgeSecret = "a3c41709c9da4ea77059eb734570726950b9a70cb7af6a3bf0ece94d54d0c8c0";
   haAirConditioner = "climate.ar";
   haLaundryDryingToggle = "input_boolean.secar_roupas";
   haClimateAction = action: data: {
@@ -650,56 +648,6 @@ in {
               }
             ];
           }
-          {
-            switch = [
-              {
-                name = "Luz Sala";
-                unique_id = "luz_sala_remota_switch";
-                state = "{{ states('sensor.luz_sala_remota') == 'on' }}";
-                turn_on.action = "rest_command.luz_sala_turn_on";
-                turn_off.action = "rest_command.luz_sala_turn_off";
-                icon = "mdi:lightbulb";
-              }
-            ];
-          }
-        ];
-
-        rest_command = {
-          luz_sala_turn_on = {
-            url = "${luzSalaBridgeUrl}/turn_on";
-            method = "post";
-            headers = { X-Secret = luzSalaBridgeSecret; };
-            content_type = "application/json";
-            payload = "{}";
-          };
-          luz_sala_turn_off = {
-            url = "${luzSalaBridgeUrl}/turn_off";
-            method = "post";
-            headers = { X-Secret = luzSalaBridgeSecret; };
-            content_type = "application/json";
-            payload = "{}";
-          };
-          luz_sala_toggle = {
-            url = "${luzSalaBridgeUrl}/toggle";
-            method = "post";
-            headers = { X-Secret = luzSalaBridgeSecret; };
-            content_type = "application/json";
-            payload = "{}";
-          };
-        };
-
-        rest = [
-          {
-            resource = "${luzSalaBridgeUrl}/state";
-            headers = { X-Secret = luzSalaBridgeSecret; };
-            scan_interval = 10;
-            sensor = [{
-              name = "Luz Sala Remota";
-              unique_id = "luz_sala_remota";
-              value_template = "{{ value_json.state }}";
-              icon = "mdi:lightbulb";
-            }];
-          }
         ];
 
         lovelace = {
@@ -1332,6 +1280,10 @@ in {
       Unit = "claude-usage-export.service";
     };
   };
+
+  systemd.tmpfiles.rules = [
+    "L+ /var/lib/hass/custom_components/localtuya - hass hass - ${../../configs/home-assistant/custom_components/localtuya}"
+  ];
 
   systemd.timers."nix-flake-update" = {
     wantedBy = [ "timers.target" ];
