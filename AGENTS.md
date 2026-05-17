@@ -35,7 +35,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
 - `configs/home-assistant/`: scripts auxiliares consumidos por servicos do host para alimentar o Home Assistant.
-  - `configs/home-assistant/codex_status.py`: exportador do status local do Codex.
+  - `configs/home-assistant/codex_status.py`: exportador do status web do Codex/ChatGPT para o Home Assistant, com fallback para logs locais.
   - `configs/home-assistant/ui-lovelace.yaml`: dashboard principal do Home Assistant em YAML.
 - `configs/wofi/`: configuracao e tema do launcher Wofi.
 - `secrets/secrets.nix`: regras do agenix.
@@ -583,7 +583,8 @@ Arquivo principal:
 
 Estado atual:
 
-- O host exporta o status local do Codex a partir de `~/.codex/sessions/.../*.jsonl`.
+- O host exporta preferencialmente o status web do Codex/ChatGPT a partir da sessao autenticada do navegador em `~/.zen/.../cookies.sqlite`, usando o container pessoal (`userContextId=1`) para buscar `/api/auth/session` e `/backend-api/wham/usage`.
+- Se a sessao web nao estiver disponivel, o exporter faz fallback para `~/.codex/sessions/.../*.jsonl`.
 - O export e feito pelo timer `codex-status-export`, que gera `/var/lib/hass/codex_status.json`.
 - O Home Assistant le esse JSON via sensores `command_line`.
 - Sensores expostos hoje:
@@ -596,7 +597,8 @@ Estado atual:
 
 Cuidados:
 
-- Nao tente obter esses dados via API de billing da OpenAI sem necessidade; o estado atual usa apenas arquivos locais do Codex.
+- Nao tente obter esses dados via API de billing da OpenAI sem necessidade; o estado atual usa a sessao web do ChatGPT/Codex e mantem fallback local.
+- Se mudar de perfil/container no Zen, ajuste `CHATGPT_COOKIE_DB` ou `CHATGPT_COOKIE_CONTEXT_PREFIX` no exporter antes de assumir que a coleta web continuara funcionando.
 - Se mover a origem dos logs do Codex, ajuste `CODEX_SESSION_ROOT` no servico `codex-status-export`.
 - O dashboard do Home Assistant continua em storage mode; a fonte declarativa aqui cobre os sensores, nao os cards da UI.
 
