@@ -267,7 +267,7 @@ views:
             [[[
               const value = Math.max(0, Math.min(100, Number(states['sensor.claude_5h_left']?.state || 0)));
               const reset = states['sensor.claude_5h_reset_formatted']?.state || 'indisponível';
-              let color = '#bd93f9';
+              let color = '#50fa7b';
               if (value < 20) color = '#ff5555';
               else if (value < 50) color = '#ffb86c';
               return `
@@ -285,7 +285,7 @@ views:
             [[[
               const value = Math.max(0, Math.min(100, Number(states['sensor.claude_7d_left']?.state || 0)));
               const reset = states['sensor.claude_7d_reset_formatted']?.state || 'indisponível';
-              let color = '#bd93f9';
+              let color = '#8be9fd';
               if (value < 30) color = '#ff5555';
               else if (value < 65) color = '#ffb86c';
               return `
@@ -317,7 +317,7 @@ views:
             - width: 34px
             - height: 34px
           icon:
-            - color: "#bd93f9"
+            - color: "#8be9fd"
             - width: 24px
             - height: 24px
           name:
