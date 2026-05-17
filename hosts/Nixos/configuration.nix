@@ -8,6 +8,7 @@ let
   homeDir = "/home/${username}";
   repoDir = "${homeDir}/Projetos/Sistemas/nixos-config";
   codexStatusPath = "/var/lib/hass/codex_status.json";
+  claudeUsagePath = "/var/lib/hass/claude_usage.json";
   haAirConditioner = "climate.ar";
   haLaundryDryingToggle = "input_boolean.secar_roupas";
   haClimateAction = action: data: {
@@ -568,6 +569,50 @@ in {
               icon = "mdi:calendar-refresh";
             };
           }
+          {
+            sensor = {
+              name = "Claude 5h Left";
+              unique_id = "claude_5h_left";
+              command = "${pkgs.coreutils}/bin/cat ${claudeUsagePath}";
+              value_template = "{{ value_json.five_hour_left_percent }}";
+              unit_of_measurement = "%";
+              scan_interval = 60;
+              icon = "mdi:timer-sand";
+            };
+          }
+          {
+            sensor = {
+              name = "Claude 5h Reset";
+              unique_id = "claude_5h_reset";
+              command = "${pkgs.coreutils}/bin/cat ${claudeUsagePath}";
+              value_template = "{{ value_json.five_hour_resets_at }}";
+              device_class = "timestamp";
+              scan_interval = 60;
+              icon = "mdi:timer-refresh";
+            };
+          }
+          {
+            sensor = {
+              name = "Claude 7d Left";
+              unique_id = "claude_7d_left";
+              command = "${pkgs.coreutils}/bin/cat ${claudeUsagePath}";
+              value_template = "{{ value_json.seven_day_left_percent }}";
+              unit_of_measurement = "%";
+              scan_interval = 60;
+              icon = "mdi:calendar-week";
+            };
+          }
+          {
+            sensor = {
+              name = "Claude 7d Reset";
+              unique_id = "claude_7d_reset";
+              command = "${pkgs.coreutils}/bin/cat ${claudeUsagePath}";
+              value_template = "{{ value_json.seven_day_resets_at }}";
+              device_class = "timestamp";
+              scan_interval = 60;
+              icon = "mdi:calendar-refresh";
+            };
+          }
         ];
 
         template = [
@@ -585,6 +630,20 @@ in {
                 unique_id = "codex_weekly_reset_formatted";
                 state =
                   "{{ as_timestamp(states('sensor.codex_weekly_reset')) | timestamp_custom('%d/%m/%Y %H:%M', true) }}";
+                icon = "mdi:calendar-refresh";
+              }
+              {
+                name = "Claude 5h Reset Formatted";
+                unique_id = "claude_5h_reset_formatted";
+                state =
+                  "{{ as_timestamp(states('sensor.claude_5h_reset')) | timestamp_custom('%d/%m/%Y %H:%M', true) }}";
+                icon = "mdi:timer-refresh";
+              }
+              {
+                name = "Claude 7d Reset Formatted";
+                unique_id = "claude_7d_reset_formatted";
+                state =
+                  "{{ as_timestamp(states('sensor.claude_7d_reset')) | timestamp_custom('%d/%m/%Y %H:%M', true) }}";
                 icon = "mdi:calendar-refresh";
               }
             ];
@@ -1196,6 +1255,29 @@ in {
       OnUnitActiveSec = "1min";
       Persistent = true;
       Unit = "codex-status-export.service";
+    };
+  };
+
+  systemd.services.claude-usage-export = {
+    description = "Export Claude usage for Home Assistant";
+    after = [ "home-assistant.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+    };
+    script = ''
+      set -euo pipefail
+      export HOME=${homeDir}
+      ${pkgs.python3}/bin/python3 ${../../configs/home-assistant/claude_usage.py} ${claudeUsagePath}
+    '';
+  };
+
+  systemd.timers.claude-usage-export = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "2min";
+      OnUnitActiveSec = "5min";
+      Persistent = true;
+      Unit = "claude-usage-export.service";
     };
   };
 

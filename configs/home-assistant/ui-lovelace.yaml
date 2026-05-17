@@ -245,3 +245,89 @@ views:
               - margin-top: 4px
             weekly:
               - margin-top: 2px
+
+      - type: custom:button-card
+        entity: sensor.claude_5h_left
+        triggers_update:
+          - sensor.claude_5h_reset_formatted
+          - sensor.claude_7d_left
+          - sensor.claude_7d_reset_formatted
+        icon: mdi:head-cog-outline
+        name: Uso do Claude
+        show_icon: true
+        show_name: true
+        show_state: false
+        show_label: false
+        tap_action:
+          action: none
+        hold_action:
+          action: none
+        custom_fields:
+          fiveh: >
+            [[[
+              const value = Math.max(0, Math.min(100, Number(states['sensor.claude_5h_left']?.state || 0)));
+              const reset = states['sensor.claude_5h_reset_formatted']?.state || 'indisponível';
+              let color = '#bd93f9';
+              if (value < 20) color = '#ff5555';
+              else if (value < 50) color = '#ffb86c';
+              return `
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px;">
+                  <span style="color:rgba(248,250,252,0.88);font-size:14px;font-weight:600;">Janela de 5h</span>
+                  <span style="color:#ffffff;font-size:16px;font-weight:700;">${Math.round(value)}%</span>
+                </div>
+                <div style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${value}%;background:${color};border-radius:999px;"></div>
+                </div>
+                <div style="margin-top:6px;color:rgba(226,232,240,0.72);font-size:12px;">Reinicia em ${reset}</div>
+              `;
+            ]]]
+          sevenday: >
+            [[[
+              const value = Math.max(0, Math.min(100, Number(states['sensor.claude_7d_left']?.state || 0)));
+              const reset = states['sensor.claude_7d_reset_formatted']?.state || 'indisponível';
+              let color = '#bd93f9';
+              if (value < 30) color = '#ff5555';
+              else if (value < 65) color = '#ffb86c';
+              return `
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px;">
+                  <span style="color:rgba(248,250,252,0.88);font-size:14px;font-weight:600;">Limite de 7 dias</span>
+                  <span style="color:#ffffff;font-size:16px;font-weight:700;">${Math.round(value)}%</span>
+                </div>
+                <div style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:${value}%;background:${color};border-radius:999px;"></div>
+                </div>
+                <div style="margin-top:6px;color:rgba(226,232,240,0.72);font-size:12px;">Reinicia em ${reset}</div>
+              `;
+            ]]]
+        styles:
+          card:
+            - padding: 18px
+            - border-radius: 22px
+            - background: var(--ha-card-background, var(--card-background-color, #1c1c1c))
+            - box-shadow: none
+          grid:
+            - grid-template-areas: '"i n" "fiveh fiveh" "sevenday sevenday"'
+            - grid-template-columns: min-content 1fr
+            - grid-template-rows: min-content min-content min-content
+            - column-gap: 12px
+            - row-gap: 14px
+          img_cell:
+            - justify-self: start
+            - align-self: center
+            - width: 34px
+            - height: 34px
+          icon:
+            - color: "#bd93f9"
+            - width: 24px
+            - height: 24px
+          name:
+            - justify-self: start
+            - align-self: center
+            - color: white
+            - font-size: 22px
+            - font-weight: 600
+          custom_fields:
+            fiveh:
+              - margin-top: 4px
+            sevenday:
+              - margin-top: 2px
