@@ -1275,7 +1275,7 @@ in {
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnBootSec = "2min";
-      OnUnitActiveSec = "5min";
+      OnUnitActiveSec = "1min";
       Persistent = true;
       Unit = "claude-usage-export.service";
     };

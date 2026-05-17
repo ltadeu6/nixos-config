@@ -68,6 +68,32 @@ def fetch_json(url: str, headers: dict[str, str]) -> dict:
         return json.load(response)
 
 
+def load_cached_org_uuid(output_path: Path) -> Optional[str]:
+    try:
+        with output_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    org_uuid = payload.get("organization_uuid")
+    if isinstance(org_uuid, str) and org_uuid:
+        return org_uuid
+
+    return None
+
+
+def discover_org_uuid(base_headers: dict[str, str]) -> Optional[str]:
+    bootstrap = fetch_json("https://claude.ai/api/bootstrap", base_headers)
+    account = bootstrap.get("account") or {}
+    memberships = account.get("memberships") or []
+    for membership in memberships:
+        org = membership.get("organization") or {}
+        if org.get("uuid"):
+            return org["uuid"]
+
+    return None
+
+
 def main():
     output_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/var/lib/hass/claude_usage.json")
     home_dir = Path(os.environ.get("HOME", str(Path.home())))
@@ -96,23 +122,16 @@ def main():
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
     }
 
-    try:
-        bootstrap = fetch_json("https://claude.ai/api/bootstrap", base_headers)
-    except (OSError, urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
-        print(f"Failed to fetch bootstrap: {e}", file=sys.stderr)
-        return 1
-
-    account = bootstrap.get("account") or {}
-    memberships = account.get("memberships") or []
-    org_uuid = None
-    for membership in memberships:
-        org = membership.get("organization") or {}
-        if org.get("uuid"):
-            org_uuid = org["uuid"]
-            break
+    org_uuid = load_cached_org_uuid(output_path)
+    if not org_uuid:
+        try:
+            org_uuid = discover_org_uuid(base_headers)
+        except (OSError, urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
+            print(f"Failed to fetch bootstrap: {e}", file=sys.stderr)
+            return 1
 
     if not org_uuid:
-        print(f"No organization UUID in bootstrap. Keys: {list(bootstrap.keys())}", file=sys.stderr)
+        print("No organization UUID available for Claude usage export", file=sys.stderr)
         return 1
 
     try:
@@ -121,8 +140,19 @@ def main():
             base_headers,
         )
     except (OSError, urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
-        print(f"Failed to fetch usage from org {org_uuid}: {e}", file=sys.stderr)
-        return 1
+        if load_cached_org_uuid(output_path) == org_uuid:
+            try:
+                org_uuid = discover_org_uuid(base_headers)
+                usage_data = fetch_json(
+                    f"https://claude.ai/api/organizations/{org_uuid}/usage",
+                    base_headers,
+                )
+            except (OSError, urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as retry_error:
+                print(f"Failed to fetch usage from org {org_uuid}: {retry_error}", file=sys.stderr)
+                return 1
+        else:
+            print(f"Failed to fetch usage from org {org_uuid}: {e}", file=sys.stderr)
+            return 1
 
     # Response shape:
     # {
@@ -143,6 +173,7 @@ def main():
         "five_hour_resets_at": iso_passthrough(five_hour.get("resets_at")),
         "seven_day_left_percent": clamp_percent(100.0 - float(seven_day["utilization"])),
         "seven_day_resets_at": iso_passthrough(seven_day.get("resets_at")),
+        "organization_uuid": org_uuid,
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "source": "claude_web",
     }
