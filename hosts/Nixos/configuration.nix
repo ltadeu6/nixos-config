@@ -48,6 +48,12 @@ let
     inherit timeout;
     continue_on_timeout = true;
   };
+  haWaitForMinTemperatureOrToggleOff = temperature: timeout: {
+    wait_template =
+      "{{ is_state('${haLaundryDryingToggle}', 'off') or (state_attr('${haAirConditioner}', 'current_temperature') | float(0)) < ${toString temperature} }}";
+    inherit timeout;
+    continue_on_timeout = true;
+  };
   haHoldHeatIfStillUseful = cutoffTemperature: holdTimeout: {
     choose = [{
       conditions = [{
@@ -463,7 +469,7 @@ in {
                             '';
                           }];
                           sequence = haCoolPulse ++ [
-                            (haWaitForDryingToggleOff "00:15:00")
+                            (haWaitForMinTemperatureOrToggleOff 21 "00:15:00")
                             {
                               choose = [{
                                 conditions = [{
