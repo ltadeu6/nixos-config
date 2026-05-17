@@ -37,7 +37,7 @@ let
         conditions = [{
           condition = "template";
           value_template =
-            "{{ '${preferred}' in (state_attr('${haAirConditioner}', 'fan_modes') or []) }}";
+            "{{ '${preferred}' in ((state_attr('${haAirConditioner}', 'fan_modes') or []) | map('string') | list) }}";
         }];
         sequence = [ (haSetFanMode preferred) ];
       }
@@ -45,7 +45,7 @@ let
         conditions = [{
           condition = "template";
           value_template =
-            "{{ '${fallback}' in (state_attr('${haAirConditioner}', 'fan_modes') or []) }}";
+            "{{ '${fallback}' in ((state_attr('${haAirConditioner}', 'fan_modes') or []) | map('string') | list) }}";
         }];
         sequence = [ (haSetFanMode fallback) ];
       }
@@ -53,27 +53,27 @@ let
   };
   haDryCycle = [
     (haSetHvacMode "dry")
-    (haSetFanModeIfAvailable "medium" "auto")
+    (haSetFanModeIfAvailable "3" "2")
   ];
   haHeatEvaporationCycle = [
     (haSetHvacMode "heat")
     (haSetTemperature 25)
-    (haSetFanModeIfAvailable "high" "auto")
+    (haSetFanModeIfAvailable "5" "4")
   ];
   haHeatRecoveryCycle = [
     (haSetHvacMode "heat")
     (haSetTemperature 24)
-    (haSetFanModeIfAvailable "high" "auto")
+    (haSetFanModeIfAvailable "5" "4")
   ];
   haCoolPulse = [
     (haSetHvacMode "cool")
     (haSetTemperature 22)
-    (haSetFanModeIfAvailable "medium" "auto")
+    (haSetFanModeIfAvailable "4" "3")
   ];
   haHotRoomCoolPulse = [
     (haSetHvacMode "cool")
     (haSetTemperature 23)
-    (haSetFanModeIfAvailable "medium" "auto")
+    (haSetFanModeIfAvailable "4" "3")
   ];
   zenExtension = shortId: guid: {
     name = guid;

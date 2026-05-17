@@ -620,7 +620,8 @@ Estado atual:
 - Entre 23 C e 28 C, o script usa pulsos planejados de `cool` com setpoint 22 C por ate 15 minutos, depois volta para `dry` por ate 40 minutos.
 - Acima de 28 C, o script nunca aquece; usa `cool` com setpoint 23 C por ate 20 minutos e depois `dry`.
 - O tempo maximo de execucao e 6 horas; ao expirar, o script desliga `climate.ar` e desliga `input_boolean.secar_roupas`.
-- Fan mode e definido apenas se o valor existir em `state_attr('climate.ar', 'fan_modes')`; tenta `medium`/`high` e cai para `auto`.
+- Fan mode e definido apenas se o valor existir em `state_attr('climate.ar', 'fan_modes')`; a integracao atual aceita niveis numericos `1..5`.
+- O script usa fan `3` no `dry`, fan `4` no `cool` e fan `5` no `heat`, sempre com fallback para um nivel abaixo.
 
 Cuidados:
 
