@@ -615,8 +615,8 @@ Estado atual:
 - As dashboards `ui-lovelace.yaml` e `ui-overview.yaml` exibem um botao para alternar `input_boolean.secar_roupas`.
 - A temperatura vem de `state_attr('climate.ar', 'current_temperature')`; nao ha sensor de umidade dedicado.
 - A estrategia alterna aquecimento moderado para evaporar agua das roupas e `cool`/`dry` para condensar e drenar a umidade.
-- No inicio, se a sala estiver abaixo de 24 C, o script usa `heat` com setpoint 25 C por ate 15 minutos.
-- Durante o loop, abaixo de 21 C o script usa `heat` com setpoint 24 C por ate 20 minutos para recuperar temperatura.
+- No inicio, se a sala estiver abaixo de 24 C, o script usa `heat` com setpoint 25 C ate chegar em 25 C, segura ate 5 minutos se ainda estiver abaixo de 27 C, e tem timeout maximo de 15 minutos.
+- Durante o loop, abaixo de 21 C o script usa `heat` com setpoint 24 C ate chegar em 24 C, segura ate 5 minutos se ainda estiver abaixo de 26 C, e tem timeout maximo de 20 minutos.
 - Entre 23 C e 28 C, o script usa pulsos planejados de `cool` com setpoint 22 C por ate 15 minutos, depois volta para `dry` por ate 40 minutos.
 - Acima de 28 C, o script nunca aquece; usa `cool` com setpoint 23 C por ate 20 minutos e depois `dry`.
 - O tempo maximo de execucao e 6 horas; ao expirar, o script desliga `climate.ar` e desliga `input_boolean.secar_roupas`.

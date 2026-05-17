@@ -41,6 +41,22 @@ let
     inherit timeout;
     continue_on_timeout = true;
   };
+  haWaitForTemperatureOrToggleOff = temperature: timeout: {
+    wait_template =
+      "{{ is_state('${haLaundryDryingToggle}', 'off') or (state_attr('${haAirConditioner}', 'current_temperature') | float(0)) >= ${toString temperature} }}";
+    inherit timeout;
+    continue_on_timeout = true;
+  };
+  haHoldHeatIfStillUseful = cutoffTemperature: holdTimeout: {
+    choose = [{
+      conditions = [{
+        condition = "template";
+        value_template =
+          "{{ is_state('${haLaundryDryingToggle}', 'on') and (state_attr('${haAirConditioner}', 'current_temperature') | float(0)) < ${toString cutoffTemperature} }}";
+      }];
+      sequence = [ (haWaitForDryingToggleOff holdTimeout) ];
+    }];
+  };
   haSetFanModeIfAvailable = preferred: fallback: {
     choose = [
       {
@@ -71,12 +87,16 @@ let
     haWaitForClimateReady
     (haSetTemperature 25)
     (haSetFanModeIfAvailable "5" "4")
+    (haWaitForTemperatureOrToggleOff 25 "00:15:00")
+    (haHoldHeatIfStillUseful 27 "00:05:00")
   ];
   haHeatRecoveryCycle = [
     (haSetHvacMode "heat")
     haWaitForClimateReady
     (haSetTemperature 24)
     (haSetFanModeIfAvailable "5" "4")
+    (haWaitForTemperatureOrToggleOff 24 "00:20:00")
+    (haHoldHeatIfStillUseful 26 "00:05:00")
   ];
   haCoolPulse = [
     (haSetHvacMode "cool")
@@ -357,8 +377,7 @@ in {
                     condition = "template";
                     value_template = "{{ current_temp < 24 }}";
                   }];
-                  sequence = haHeatEvaporationCycle
-                    ++ [ (haWaitForDryingToggleOff "00:15:00") ];
+                  sequence = haHeatEvaporationCycle;
                 }];
               }
               {
@@ -398,7 +417,6 @@ in {
                               "{{ current_temp < 21 }}";
                           }];
                           sequence = haHeatRecoveryCycle ++ [
-                            (haWaitForDryingToggleOff "00:20:00")
                             {
                               choose = [{
                                 conditions = [{
