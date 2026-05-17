@@ -22,10 +22,20 @@ let
   haSetFanMode = fan_mode:
     haClimateAction "climate.set_fan_mode" { inherit fan_mode; };
   haTurnOffClimate = haClimateAction "climate.turn_off" { };
+  haTurnOffClimateIfOn = {
+    choose = [{
+      conditions = [{
+        condition = "template";
+        value_template = "{{ not is_state('${haAirConditioner}', 'off') }}";
+      }];
+      sequence = [ haTurnOffClimate ];
+    }];
+  };
   haTurnOffDryingToggle = {
     action = "input_boolean.turn_off";
     target.entity_id = haLaundryDryingToggle;
   };
+  haWaitForClimateReady = { delay = "00:00:10"; };
   haWaitForDryingToggleOff = timeout: {
     wait_template = "{{ is_state('${haLaundryDryingToggle}', 'off') }}";
     inherit timeout;
@@ -53,25 +63,30 @@ let
   };
   haDryCycle = [
     (haSetHvacMode "dry")
+    haWaitForClimateReady
     (haSetFanModeIfAvailable "3" "2")
   ];
   haHeatEvaporationCycle = [
     (haSetHvacMode "heat")
+    haWaitForClimateReady
     (haSetTemperature 25)
     (haSetFanModeIfAvailable "5" "4")
   ];
   haHeatRecoveryCycle = [
     (haSetHvacMode "heat")
+    haWaitForClimateReady
     (haSetTemperature 24)
     (haSetFanModeIfAvailable "5" "4")
   ];
   haCoolPulse = [
     (haSetHvacMode "cool")
+    haWaitForClimateReady
     (haSetTemperature 22)
     (haSetFanModeIfAvailable "4" "3")
   ];
   haHotRoomCoolPulse = [
     (haSetHvacMode "cool")
+    haWaitForClimateReady
     (haSetTemperature 23)
     (haSetFanModeIfAvailable "4" "3")
   ];
@@ -450,7 +465,7 @@ in {
                   ];
                 };
               }
-              haTurnOffClimate
+              haTurnOffClimateIfOn
               {
                 choose = [{
                   conditions = [{
@@ -486,7 +501,7 @@ in {
               entity_id = haLaundryDryingToggle;
               to = "off";
             }];
-            action = [ haTurnOffClimate ];
+            action = [ haTurnOffClimateIfOn ];
           }
         ];
 

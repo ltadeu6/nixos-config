@@ -622,6 +622,7 @@ Estado atual:
 - O tempo maximo de execucao e 6 horas; ao expirar, o script desliga `climate.ar` e desliga `input_boolean.secar_roupas`.
 - Fan mode e definido apenas se o valor existir em `state_attr('climate.ar', 'fan_modes')`; a integracao atual aceita niveis numericos `1..5`.
 - O script usa fan `3` no `dry`, fan `4` no `cool` e fan `5` no `heat`, sempre com fallback para um nivel abaixo.
+- Apos trocar `hvac_mode`, o script espera 10 segundos antes de setpoint/fan para evitar comandos rejeitados durante `POWER_ON`.
 
 Cuidados:
 
