@@ -4,6 +4,81 @@ views:
     title: Home
     type: masonry
     cards:
+      - type: custom:button-card
+        entity: switch.luz_sala
+        triggers_update:
+          - sensor.luz_sala_remota
+        icon: mdi:lightbulb
+        name: Luz Sala
+        show_icon: true
+        show_name: true
+        show_state: false
+        show_label: false
+        tap_action:
+          action: call-service
+          service: switch.toggle
+          service_data:
+            entity_id: switch.luz_sala
+        hold_action:
+          action: none
+        custom_fields:
+          status: >
+            [[[
+              const raw = states['sensor.luz_sala_remota']?.state;
+              if (raw === 'on') return 'Ligada';
+              if (raw === 'off') return 'Desligada';
+              return raw || 'Indisponível';
+            ]]]
+        styles:
+          card:
+            - padding: 18px
+            - border-radius: 22px
+            - background: |
+                [[[
+                  const s = states['sensor.luz_sala_remota']?.state;
+                  return s === 'on'
+                    ? 'linear-gradient(135deg, rgba(255,215,0,0.22), rgba(255,184,108,0.10))'
+                    : 'var(--ha-card-background, var(--card-background-color, #1c1c1c))';
+                ]]]
+            - box-shadow: none
+          grid:
+            - grid-template-areas: '"i n" "i status"'
+            - grid-template-columns: min-content 1fr
+            - grid-template-rows: min-content min-content
+            - column-gap: 12px
+            - row-gap: 4px
+          img_cell:
+            - justify-self: start
+            - align-self: center
+            - width: 42px
+            - height: 42px
+            - border-radius: 16px
+            - background: rgba(255,255,255,0.10)
+          icon:
+            - color: |
+                [[[
+                  const s = states['sensor.luz_sala_remota']?.state;
+                  return s === 'on' ? '#ffd700' : 'rgba(255,255,255,0.4)';
+                ]]]
+            - width: 24px
+            - height: 24px
+          name:
+            - justify-self: start
+            - align-self: end
+            - color: white
+            - font-size: 22px
+            - font-weight: 700
+          custom_fields:
+            status:
+              - justify-self: start
+              - color: |
+                  [[[
+                    const s = states['sensor.luz_sala_remota']?.state;
+                    return s === 'on' ? '#ffd700' : 'rgba(248,250,252,0.82)';
+                  ]]]
+              - font-size: 15px
+              - font-weight: 600
+
       - type: weather-forecast
         entity: weather.forecast_casa
         show_forecast: true
