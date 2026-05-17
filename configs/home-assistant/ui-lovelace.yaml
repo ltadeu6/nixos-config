@@ -166,7 +166,7 @@ views:
           - sensor.codex_5h_reset_formatted
           - sensor.codex_weekly_left
           - sensor.codex_weekly_reset_formatted
-        icon: mdi:robot-outline
+        icon: mdi:console-line
         name: Uso do Codex
         show_icon: true
         show_name: true
@@ -231,7 +231,7 @@ views:
             - width: 34px
             - height: 34px
           icon:
-            - color: "#ffb86c"
+            - color: "#8be9fd"
             - width: 24px
             - height: 24px
           name:
@@ -252,7 +252,7 @@ views:
           - sensor.claude_5h_reset_formatted
           - sensor.claude_7d_left
           - sensor.claude_7d_reset_formatted
-        icon: mdi:head-cog-outline
+        icon: mdi:brain
         name: Uso do Claude
         show_icon: true
         show_name: true
@@ -317,7 +317,7 @@ views:
             - width: 34px
             - height: 34px
           icon:
-            - color: "#8be9fd"
+            - color: "#ffb86c"
             - width: 24px
             - height: 24px
           name:
