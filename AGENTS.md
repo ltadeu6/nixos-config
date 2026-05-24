@@ -38,6 +38,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
   - `configs/home-assistant/codex_status.py`: exportador do status web do Codex/ChatGPT para o Home Assistant, com fallback para logs locais.
   - `configs/home-assistant/ui-lovelace.yaml`: dashboard principal do Home Assistant em YAML.
 - `configs/wofi/`: configuracao e tema do launcher Wofi.
+- `hosts/Nixos/libvirt/`: XMLs versionados de VMs locais usadas no host `Nixos`.
 - `secrets/secrets.nix`: regras do agenix.
 - `secrets/*.age`: segredos criptografados.
 - `openclaw/documents/`: documentos consumidos pelo modulo opcional do OpenClaw.
@@ -81,6 +82,14 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 
 - Fonte principal: `home/ltadeu6.nix`
 - O Home Manager publica arquivos em `~/.config` a partir de `configs/` ou gera alguns deles inline.
+
+### Libvirt / GNOME Boxes
+
+- `hosts/Nixos/libvirt/win11-3.xml` registra a VM Windows 11 usada pelo GNOME Boxes.
+- A VM deve permanecer em `qemu:///session`; migrar para `qemu:///system` faz ela sair do fluxo normal do GNOME Boxes.
+- A interface de rede da VM usa `type='bridge'` com `source bridge='virbr0'` para dar IP em `192.168.122.0/24` e permitir SSH direto do host.
+- Nao reintroduza `passt` ou `portForward` nesse XML sem um motivo explicito; a configuracao atual depende de `qemu-bridge-helper` e de `/etc/qemu/bridge.conf` permitindo `virbr0`.
+- Para aplicar alteracoes nesse XML: `virsh --connect qemu:///session define hosts/Nixos/libvirt/win11-3.xml`.
 
 ### Hyprland / wallpaper
 
