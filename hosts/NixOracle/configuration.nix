@@ -23,6 +23,13 @@ let
     cp ${./site/index.html} $out/index.html
     cp ${./site/style.css} $out/style.css
   '';
+  biolabSrc = pkgs.fetchFromGitea {
+    domain = "git.tadix.dev";
+    owner = "ltadeu6";
+    repo = "BioLab";
+    rev = "eed063f16c8dd9248529a864840c30171feacdc2";
+    hash = "sha256-Uot/ETx+RpBtNZG/0BsZxcXinPZGEDoUJSAFLIg4j9E=";
+  };
 in {
   imports = [
     ./hardware-configuration.nix
@@ -100,6 +107,11 @@ in {
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         '';
       };
+    };
+    virtualHosts."biolab.tadix.dev" = {
+      enableACME = true;
+      forceSSL = true;
+      root = "${biolabSrc}/www";
     };
     virtualHosts."jupyter.tadix.dev" = {
       enableACME = true;
