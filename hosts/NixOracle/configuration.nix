@@ -58,7 +58,7 @@ in {
   ];
 
   environment.etc."jupyter/jupyter_server_config.py".text = ''
-    c.ServerApp.ip = "0.0.0.0"
+    c.ServerApp.ip = "127.0.0.1"
     c.ServerApp.port = 8888
     c.ServerApp.open_browser = False
     c.ServerApp.allow_remote_access = True
@@ -67,7 +67,30 @@ in {
     c.PasswordIdentityProvider.password_required = True
   '';
 
-  networking.firewall.allowedTCPPorts = [ 8888 ];
+  networking.firewall.allowedTCPPorts = [ 80 443 ];
+
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "ltadeu6@gmail.com";
+  };
+
+  services.nginx = {
+    enable = true;
+    virtualHosts."jupyter.tadix.dev" = {
+      enableACME = true;
+      forceSSL = true;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:8888";
+        proxyWebsockets = true;
+        extraConfig = ''
+          proxy_set_header Host $http_host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_read_timeout 300s;
+        '';
+      };
+    };
+  };
 
   systemd.services.jupyter-lab = {
     description = "Single-user JupyterLab";
