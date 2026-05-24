@@ -88,6 +88,19 @@ in {
       forceSSL = true;
       root = "${site}";
     };
+    virtualHosts."git.tadix.dev" = {
+      enableACME = true;
+      forceSSL = true;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:3000";
+        proxyWebsockets = true;
+        extraConfig = ''
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        '';
+      };
+    };
     virtualHosts."jupyter.tadix.dev" = {
       enableACME = true;
       forceSSL = true;
@@ -101,6 +114,21 @@ in {
           proxy_read_timeout 300s;
         '';
       };
+    };
+  };
+
+  services.forgejo = {
+    enable = true;
+    database.type = "sqlite3";
+    settings = {
+      server = {
+        DOMAIN = "git.tadix.dev";
+        ROOT_URL = "https://git.tadix.dev";
+        HTTP_PORT = 3000;
+        SSH_DOMAIN = "git.tadix.dev";
+      };
+      service.DISABLE_REGISTRATION = true;
+      log.LEVEL = "Warn";
     };
   };
 
