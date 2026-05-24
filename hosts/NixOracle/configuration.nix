@@ -18,6 +18,11 @@ let
       numpy
       pandas
     ]);
+  site = pkgs.runCommand "tadix-site" { } ''
+    mkdir -p $out
+    cp ${./site/index.html} $out/index.html
+    cp ${./site/style.css} $out/style.css
+  '';
 in {
   imports = [
     ./hardware-configuration.nix
@@ -78,6 +83,11 @@ in {
 
   services.nginx = {
     enable = true;
+    virtualHosts."tadix.dev" = {
+      enableACME = true;
+      forceSSL = true;
+      root = "${site}";
+    };
     virtualHosts."jupyter.tadix.dev" = {
       enableACME = true;
       forceSSL = true;

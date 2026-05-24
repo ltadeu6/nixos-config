@@ -1,0 +1,78 @@
+:root {
+  --bg:     #0f0f0f;
+  --fg:     #d4d4d4;
+  --dim:    #555;
+  --accent: #7aa2f7;
+  --border: #2a2a2a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 60ch;
+  margin: 5rem auto;
+  padding: 0 1.5rem;
+}
+
+h1 {
+  font-size: 1em;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+h2 {
+  font-size: 0.85em;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  margin-bottom: 0.6rem;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+section {
+  margin-bottom: 2rem;
+}
+
+p {
+  margin-bottom: 0.4rem;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+footer {
+  display: flex;
+  gap: 2rem;
+}
+
+footer a {
+  color: var(--dim);
+}
+
+footer a::before {
+  content: '→ ';
+}
