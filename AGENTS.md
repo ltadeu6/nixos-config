@@ -557,6 +557,9 @@ Estado atual:
 - `secrets/android_release_keystore.age`
 - `secrets/android_release_store_password.age`
 - `secrets/android_release_key_password.age`
+- `secrets/matrix_android_firebase_service_account.age`
+- `secrets/matrix_android_google_services.age`
+- `secrets/matrix_android_commander_credentials.age`
 - `secrets/minecraft_rcon_password.age`
 - `secrets/wireguard_private_key.age`
 
@@ -582,6 +585,12 @@ Estado atual:
 - O alias padrao da chave e `release`.
 - O helper `android-signing-env` exporta `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_TYPE`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD` e `ANDROID_KEY_PASSWORD` apenas para o comando filho.
 - Use `android-signing-env ./gradlew assembleRelease` ou `android-signing-env ./gradlew bundleRelease`; nao exporte essas senhas globalmente.
+- Secrets locais do projeto `matrix-android` tambem ficam sob agenix:
+  - `matrix_android_firebase_service_account` materializa `.secrets/firebase-service-account.json`.
+  - `matrix_android_google_services` materializa `app/google-services.json`.
+  - `matrix_android_commander_credentials` materializa `.mc/credentials.json`.
+- O helper `matrix-android-secrets [project-dir]` cria symlinks desses tres arquivos para `/run/agenix`; por default usa o diretorio atual.
+- Nao migre `local.properties`, debug keystores, `.gradle`, `.wrangler` ou caches locais do `matrix-android` para este repo sem um motivo explicito.
 
 ## Dependencias implicitas e pontos de atencao
 

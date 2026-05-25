@@ -38,6 +38,44 @@ let
 
     exec "$@"
   '';
+  matrixAndroidSecrets = pkgs.writeShellScriptBin "matrix-android-secrets" ''
+    set -eu
+
+    project_dir=''${1:-"$PWD"}
+    if [ ! -f "$project_dir/app/build.gradle.kts" ]; then
+      echo "Usage: matrix-android-secrets [matrix-android-project-dir]" >&2
+      echo "Could not find app/build.gradle.kts in: $project_dir" >&2
+      exit 1
+    fi
+
+    link_secret() {
+      source_path=$1
+      target_path=$2
+
+      if [ ! -r "$source_path" ]; then
+        echo "Missing readable secret: $source_path" >&2
+        exit 1
+      fi
+
+      target_dir=$(${pkgs.coreutils}/bin/dirname "$target_path")
+      ${pkgs.coreutils}/bin/mkdir -p "$target_dir"
+
+      if [ -e "$target_path" ] || [ -L "$target_path" ]; then
+        current_target=$(${pkgs.coreutils}/bin/readlink "$target_path" || true)
+        if [ "$current_target" = "$source_path" ]; then
+          return
+        fi
+        echo "Refusing to replace existing file: $target_path" >&2
+        exit 1
+      fi
+
+      ${pkgs.coreutils}/bin/ln -s "$source_path" "$target_path"
+    }
+
+    link_secret /run/agenix/matrix_android_firebase_service_account "$project_dir/.secrets/firebase-service-account.json"
+    link_secret /run/agenix/matrix_android_google_services "$project_dir/app/google-services.json"
+    link_secret /run/agenix/matrix_android_commander_credentials "$project_dir/.mc/credentials.json"
+  '';
   haAirConditioner = "climate.ar";
   haLaundryDryingToggle = "input_boolean.secar_roupas";
   haClimateAction = action: data: {
@@ -229,6 +267,30 @@ in {
       (builtins.pathExists ../../secrets/android_release_key_password.age) {
         android_release_key_password = {
           file = ../../secrets/android_release_key_password.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/matrix_android_firebase_service_account.age) {
+        matrix_android_firebase_service_account = {
+          file = ../../secrets/matrix_android_firebase_service_account.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/matrix_android_google_services.age) {
+        matrix_android_google_services = {
+          file = ../../secrets/matrix_android_google_services.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/matrix_android_commander_credentials.age) {
+        matrix_android_commander_credentials = {
+          file = ../../secrets/matrix_android_commander_credentials.age;
           owner = username;
           group = "users";
           mode = "0400";
@@ -1435,6 +1497,7 @@ in {
     nodePackages.pnpm
     fishPlugins.z
     androidSigningEnv
+    matrixAndroidSecrets
   ];
 
   # environment.loginShellInit = ''
