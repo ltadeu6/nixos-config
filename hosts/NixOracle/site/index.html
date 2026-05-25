@@ -22,12 +22,7 @@
 
   <section>
     <h2>PROJECTS</h2>
-    <p>
-      <a href="https://biolab.tadix.dev">BioLab</a>
-      <span class="dim"> — bioprocess modeling and parameter estimation tool</span>
-      <br>
-      <span class="dim"><a href="https://git.tadix.dev/ltadeu6/BioLab">source</a> · <a href="https://biolab.tadix.dev">live</a></span>
-    </p>
+    <div id="git-projects"><p class="dim">— loading —</p></div>
   </section>
 
   <section>
@@ -42,6 +37,33 @@
     <a href="https://github.com/ltadeu6">github</a>
     <a href="https://git.tadix.dev">git</a>
     <a href="https://jupyter.tadix.dev">jupyter</a>
+    <a href="https://nextcloud.tadix.dev">nextcloud</a>
   </footer>
+
+  <script>
+    (async () => {
+      const el = document.getElementById('git-projects');
+      try {
+        const res = await fetch('https://git.tadix.dev/api/v1/users/ltadeu6/repos?sort=updated&limit=50');
+        if (!res.ok) throw new Error(res.status);
+        const repos = await res.json();
+        const visible = repos.filter(r => !r.archived && !r.fork && !r.empty);
+        if (!visible.length) {
+          el.innerHTML = '<p class="dim">— no public repositories —</p>';
+          return;
+        }
+        el.innerHTML = visible.map(r => {
+          const desc = r.description ? `<span class="dim"> — ${r.description}</span>` : '';
+          const live = r.website ? `<a href="${r.website}">live</a> · ` : '';
+          return `<p>
+            <a href="${r.html_url}">${r.name}</a>${desc}
+            <br><span class="dim">${live}<a href="${r.html_url}">source</a></span>
+          </p>`;
+        }).join('');
+      } catch {
+        el.innerHTML = '<p class="dim">— could not load repositories —</p>';
+      }
+    })();
+  </script>
 </body>
 </html>

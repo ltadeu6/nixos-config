@@ -69,6 +69,7 @@ in {
 
   systemd.tmpfiles.rules = [
     "d /home/${username}/notebooks 0750 ${username} users -"
+    "d /etc/nextcloud-secrets 0750 nextcloud nextcloud -"
   ];
 
   environment.etc."jupyter/jupyter_server_config.py".text = ''
@@ -94,6 +95,10 @@ in {
       enableACME = true;
       forceSSL = true;
       root = "${site}";
+    };
+    virtualHosts."nextcloud.tadix.dev" = {
+      enableACME = true;
+      forceSSL = true;
     };
     virtualHosts."git.tadix.dev" = {
       enableACME = true;
@@ -126,6 +131,22 @@ in {
           proxy_read_timeout 300s;
         '';
       };
+    };
+  };
+
+  services.nextcloud = {
+    enable = true;
+    package = pkgs.nextcloud31;
+    hostName = "nextcloud.tadix.dev";
+    https = true;
+    database.createLocally = true;
+    config = {
+      adminuser = "admin";
+      adminpassFile = "/etc/nextcloud-secrets/admin-password";
+    };
+    settings = {
+      default_phone_region = "BR";
+      maintenance_window_start = 1;
     };
   };
 
