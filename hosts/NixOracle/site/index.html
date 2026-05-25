@@ -54,11 +54,8 @@
         }
         el.innerHTML = visible.map(r => {
           const desc = r.description ? `<span class="dim"> — ${r.description}</span>` : '';
-          const live = r.website ? `<a href="${r.website}">live</a> · ` : '';
-          return `<p>
-            <a href="${r.html_url}">${r.name}</a>${desc}
-            <br><span class="dim">${live}<a href="${r.html_url}">source</a></span>
-          </p>`;
+          const live = r.website ? `<br><span class="dim"><a href="${r.website}">live</a></span>` : '';
+          return `<p><a href="${r.html_url}">${r.name}</a>${desc}${live}</p>`;
         }).join('');
       } catch {
         el.innerHTML = '<p class="dim">— could not load repositories —</p>';
