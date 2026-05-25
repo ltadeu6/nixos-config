@@ -583,7 +583,8 @@ Estado atual:
 - A chave de assinatura Android para distribuicao fora da Play Store fica em `secrets/android_release_keystore.age`.
 - As senhas ficam em `secrets/android_release_store_password.age` e `secrets/android_release_key_password.age`.
 - O alias padrao da chave e `release`.
-- O helper `android-signing-env` exporta `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_TYPE`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD` e `ANDROID_KEY_PASSWORD` apenas para o comando filho.
+- O helper `android-signing-env` exporta `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_TYPE`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` e `PUSH_GATEWAY_URL` apenas para o comando filho.
+- `PUSH_GATEWAY_URL` aponta para `https://matrix-push-gateway.ltadeu6.workers.dev`.
 - Use `android-signing-env ./gradlew assembleRelease` ou `android-signing-env ./gradlew bundleRelease`; nao exporte essas senhas globalmente.
 - Secrets locais do projeto `matrix-android` tambem ficam sob agenix:
   - `matrix_android_firebase_service_account` materializa `.secrets/firebase-service-account.json`.

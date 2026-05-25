@@ -29,6 +29,7 @@ let
     export ANDROID_KEY_ALIAS=release
     export ANDROID_KEYSTORE_PASSWORD="$(${pkgs.coreutils}/bin/cat "$secret_dir/android_release_store_password")"
     export ANDROID_KEY_PASSWORD="$(${pkgs.coreutils}/bin/cat "$secret_dir/android_release_key_password")"
+    export PUSH_GATEWAY_URL="https://matrix-push-gateway.ltadeu6.workers.dev"
 
     if [ "$#" -eq 0 ]; then
       echo "Android signing environment is ready."
