@@ -19,8 +19,9 @@ let
       pandas
     ]);
   site = pkgs.runCommand "tadix-site" { } ''
-    mkdir -p $out
+    mkdir -p $out/en
     cp ${./site/index.html} $out/index.html
+    cp ${./site/en/index.html} $out/en/index.html
     cp ${./site/style.css} $out/style.css
   '';
   biolabSrc = pkgs.fetchFromGitea {
