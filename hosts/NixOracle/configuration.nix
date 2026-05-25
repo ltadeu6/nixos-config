@@ -143,6 +143,7 @@ in {
     config = {
       adminuser = "admin";
       adminpassFile = "/etc/nextcloud-secrets/admin-password";
+      dbtype = "pgsql";
     };
     settings = {
       default_phone_region = "BR";
