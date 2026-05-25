@@ -601,7 +601,7 @@ Estado atual:
 - `secrets/cloudflare_dns_api_token.age` contem um token para DNS/Zone Read.
 - `cloudflare-worker-env <comando>` exporta `CLOUDFLARE_API_TOKEN` apenas para o comando filho usando o token de Workers.
 - `cloudflare-dns-env <comando>` exporta `CLOUDFLARE_API_TOKEN` apenas para o comando filho usando o token de DNS.
-- O token bootstrap usado para criar outros tokens e temporario; nao mantenha `cloudflare_bootstrap_api_token.age` no repo depois de revogar o token na Cloudflare.
+- O token bootstrap usado para criar outros tokens foi temporario; nao reintroduza `cloudflare_bootstrap_api_token.age` no repo. Se outro bootstrap for criado, use apenas para emitir tokens menores, revogue em seguida e remova o `.age` local.
 
 ## Dependencias implicitas e pontos de atencao
 
