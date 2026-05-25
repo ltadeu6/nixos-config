@@ -10,6 +10,9 @@ in {
   "secrets/openai_api_key.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/openclaw_gateway_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/forgejo_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/android_release_keystore.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/android_release_store_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/android_release_key_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/minecraft_rcon_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/wireguard_private_key.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
 

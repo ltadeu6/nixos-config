@@ -554,6 +554,9 @@ Estado atual:
 - `secrets/openai_api_key.age`
 - `secrets/openclaw_gateway_token.age`
 - `secrets/forgejo_api_token.age`
+- `secrets/android_release_keystore.age`
+- `secrets/android_release_store_password.age`
+- `secrets/android_release_key_password.age`
 - `secrets/minecraft_rcon_password.age`
 - `secrets/wireguard_private_key.age`
 
@@ -571,6 +574,14 @@ Estado atual:
   - `FORGEJO_API_TOKEN`
 - `/etc/profile.d/openai.sh`, `/etc/profile.d/openclaw.sh` e `/etc/profile.d/forgejo.sh` fazem o mesmo para shells de login.
 - O token do Home Assistant do Waybar AC NAO esta sob agenix neste repo; ele e lido diretamente de `~/.config/secrets/ha_token`.
+
+### Android signing
+
+- A chave de assinatura Android para distribuicao fora da Play Store fica em `secrets/android_release_keystore.age`.
+- As senhas ficam em `secrets/android_release_store_password.age` e `secrets/android_release_key_password.age`.
+- O alias padrao da chave e `release`.
+- O helper `android-signing-env` exporta `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_TYPE`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD` e `ANDROID_KEY_PASSWORD` apenas para o comando filho.
+- Use `android-signing-env ./gradlew assembleRelease` ou `android-signing-env ./gradlew bundleRelease`; nao exporte essas senhas globalmente.
 
 ## Dependencias implicitas e pontos de atencao
 

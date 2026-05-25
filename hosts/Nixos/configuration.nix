@@ -9,6 +9,35 @@ let
   repoDir = "${homeDir}/Projetos/Sistemas/nixos-config";
   codexStatusPath = "/var/lib/hass/codex_status.json";
   claudeUsagePath = "/var/lib/hass/claude_usage.json";
+  androidSigningEnv = pkgs.writeShellScriptBin "android-signing-env" ''
+    set -eu
+
+    secret_dir=/run/agenix
+    for secret in \
+      android_release_keystore \
+      android_release_store_password \
+      android_release_key_password
+    do
+      if [ ! -r "$secret_dir/$secret" ]; then
+        echo "Missing readable Android signing secret: $secret_dir/$secret" >&2
+        exit 1
+      fi
+    done
+
+    export ANDROID_KEYSTORE_PATH="$secret_dir/android_release_keystore"
+    export ANDROID_KEYSTORE_TYPE=PKCS12
+    export ANDROID_KEY_ALIAS=release
+    export ANDROID_KEYSTORE_PASSWORD="$(${pkgs.coreutils}/bin/cat "$secret_dir/android_release_store_password")"
+    export ANDROID_KEY_PASSWORD="$(${pkgs.coreutils}/bin/cat "$secret_dir/android_release_key_password")"
+
+    if [ "$#" -eq 0 ]; then
+      echo "Android signing environment is ready."
+      echo "Run: android-signing-env ./gradlew assembleRelease"
+      exit 0
+    fi
+
+    exec "$@"
+  '';
   haAirConditioner = "climate.ar";
   haLaundryDryingToggle = "input_boolean.secar_roupas";
   haClimateAction = action: data: {
@@ -176,6 +205,30 @@ in {
       (builtins.pathExists ../../secrets/forgejo_api_token.age) {
         forgejo_api_token = {
           file = ../../secrets/forgejo_api_token.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/android_release_keystore.age) {
+        android_release_keystore = {
+          file = ../../secrets/android_release_keystore.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/android_release_store_password.age) {
+        android_release_store_password = {
+          file = ../../secrets/android_release_store_password.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/android_release_key_password.age) {
+        android_release_key_password = {
+          file = ../../secrets/android_release_key_password.age;
           owner = username;
           group = "users";
           mode = "0400";
@@ -1381,6 +1434,7 @@ in {
     nodePackages.prettier
     nodePackages.pnpm
     fishPlugins.z
+    androidSigningEnv
   ];
 
   # environment.loginShellInit = ''
