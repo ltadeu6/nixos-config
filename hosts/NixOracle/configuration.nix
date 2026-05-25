@@ -141,7 +141,7 @@ in {
     https = true;
     database.createLocally = true;
     config = {
-      adminuser = "admin";
+      adminuser = "ltadeu6";
       adminpassFile = "/etc/nextcloud-secrets/admin-password";
       dbtype = "pgsql";
     };
