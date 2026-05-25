@@ -553,6 +553,7 @@ Estado atual:
 
 - `secrets/openai_api_key.age`
 - `secrets/openclaw_gateway_token.age`
+- `secrets/forgejo_api_token.age`
 - `secrets/minecraft_rcon_password.age`
 - `secrets/wireguard_private_key.age`
 
@@ -567,7 +568,8 @@ Estado atual:
 - `fish.shellInit` exporta:
   - `OPENAI_API_KEY`
   - `OPENCLAW_GATEWAY_TOKEN`
-- `/etc/profile.d/openai.sh` e `/etc/profile.d/openclaw.sh` fazem o mesmo para shells de login.
+  - `FORGEJO_API_TOKEN`
+- `/etc/profile.d/openai.sh`, `/etc/profile.d/openclaw.sh` e `/etc/profile.d/forgejo.sh` fazem o mesmo para shells de login.
 - O token do Home Assistant do Waybar AC NAO esta sob agenix neste repo; ele e lido diretamente de `~/.config/secrets/ha_token`.
 
 ## Dependencias implicitas e pontos de atencao

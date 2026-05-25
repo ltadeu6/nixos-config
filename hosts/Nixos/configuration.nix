@@ -173,6 +173,14 @@ in {
           mode = "0400";
         };
       } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/forgejo_api_token.age) {
+        forgejo_api_token = {
+          file = ../../secrets/forgejo_api_token.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
           ../../secrets/minecraft_rcon_password.age;
@@ -291,6 +299,9 @@ in {
         end
         if test -r /run/agenix/openclaw_gateway_token
           set -gx OPENCLAW_GATEWAY_TOKEN (cat /run/agenix/openclaw_gateway_token)
+        end
+        if test -r /run/agenix/forgejo_api_token
+          set -gx FORGEJO_API_TOKEN (cat /run/agenix/forgejo_api_token)
         end
       '';
       shellAliases = {
@@ -1152,6 +1163,11 @@ in {
   environment.etc."profile.d/openclaw.sh".text = ''
     if [ -r /run/agenix/openclaw_gateway_token ]; then
       export OPENCLAW_GATEWAY_TOKEN="$(cat /run/agenix/openclaw_gateway_token)"
+    fi
+  '';
+  environment.etc."profile.d/forgejo.sh".text = ''
+    if [ -r /run/agenix/forgejo_api_token ]; then
+      export FORGEJO_API_TOKEN="$(cat /run/agenix/forgejo_api_token)"
     fi
   '';
 
