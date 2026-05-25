@@ -151,6 +151,42 @@ in {
     };
   };
 
+  systemd.services.nextcloud-minimize = {
+    description = "Configure Nextcloud for minimal file-storage use";
+    after = [ "nextcloud-setup.service" ];
+    requires = [ "nextcloud-setup.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "nextcloud";
+      Group = "nextcloud";
+    };
+    unitConfig.X-Restart-Triggers = [
+      (builtins.toFile "nextcloud-minimize-trigger" ''
+        defaultapp=files
+        disabled=activity,calendar,contacts,dashboard,firstrunwizard,photos,weather_status,circles,recommendations,user_status,systemtags
+        theme=dark,#7aa2f7,plain
+      '')
+    ];
+    script = ''
+      set -eu
+      occ=/run/current-system/sw/bin/nextcloud-occ
+
+      $occ config:system:set defaultapp --value=files
+
+      for app in activity calendar contacts dashboard firstrunwizard photos weather_status circles recommendations user_status systemtags; do
+        $occ app:disable "$app" 2>/dev/null || true
+      done
+
+      $occ config:app:set theming defaultColorScheme --value=dark
+      $occ config:app:set theming color --value="#7aa2f7"
+      $occ config:app:set theming background --value="plain"
+      $occ config:app:set theming name --value="Files"
+      $occ config:app:set theming slogan --value=""
+    '';
+  };
+
   services.forgejo = {
     enable = true;
     database.type = "sqlite3";
