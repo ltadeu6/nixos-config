@@ -145,6 +145,7 @@ in {
       adminpassFile = "/etc/nextcloud-secrets/admin-password";
       dbtype = "pgsql";
     };
+    phpOptions."opcache.interned_strings_buffer" = "16";
     settings = {
       default_phone_region = "BR";
       maintenance_window_start = 1;
@@ -167,6 +168,7 @@ in {
         defaultapp=files
         disabled=activity,calendar,contacts,dashboard,firstrunwizard,photos,weather_status,circles,recommendations,user_status,systemtags
         theme=dark,#7aa2f7,plain
+        repair=mimetypes
       '')
     ];
     script = ''
@@ -184,6 +186,8 @@ in {
       $occ config:app:set theming background --value="plain"
       $occ config:app:set theming name --value="Files"
       $occ config:app:set theming slogan --value=""
+
+      $occ maintenance:repair --include-expensive
     '';
   };
 
