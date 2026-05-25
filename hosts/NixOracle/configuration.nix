@@ -203,6 +203,11 @@ in {
       };
       service.DISABLE_REGISTRATION = true;
       log.LEVEL = "Warn";
+      cors = {
+        ENABLED = true;
+        ALLOW_DOMAIN = "tadix.dev";
+        METHODS = "GET,HEAD,OPTIONS";
+      };
     };
   };
 
