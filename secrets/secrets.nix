@@ -16,7 +16,8 @@ in {
   "secrets/matrix_android_firebase_service_account.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/matrix_android_google_services.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/matrix_android_commander_credentials.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
-  "secrets/cloudflare_bootstrap_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/cloudflare_worker_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/cloudflare_dns_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/minecraft_rcon_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/wireguard_private_key.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
 

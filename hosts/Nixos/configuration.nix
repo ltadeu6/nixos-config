@@ -77,6 +77,27 @@ let
     link_secret /run/agenix/matrix_android_google_services "$project_dir/app/google-services.json"
     link_secret /run/agenix/matrix_android_commander_credentials "$project_dir/.mc/credentials.json"
   '';
+  cloudflareEnv = name: secret: pkgs.writeShellScriptBin name ''
+    set -eu
+
+    secret_path=/run/agenix/${secret}
+    if [ ! -r "$secret_path" ]; then
+      echo "Missing readable Cloudflare token: $secret_path" >&2
+      exit 1
+    fi
+
+    export CLOUDFLARE_API_TOKEN="$(${pkgs.coreutils}/bin/cat "$secret_path")"
+
+    if [ "$#" -eq 0 ]; then
+      echo "Cloudflare API token environment is ready."
+      exit 0
+    fi
+
+    exec "$@"
+  '';
+  cloudflareWorkerEnv =
+    cloudflareEnv "cloudflare-worker-env" "cloudflare_worker_api_token";
+  cloudflareDnsEnv = cloudflareEnv "cloudflare-dns-env" "cloudflare_dns_api_token";
   haAirConditioner = "climate.ar";
   haLaundryDryingToggle = "input_boolean.secar_roupas";
   haClimateAction = action: data: {
@@ -292,6 +313,22 @@ in {
       (builtins.pathExists ../../secrets/matrix_android_commander_credentials.age) {
         matrix_android_commander_credentials = {
           file = ../../secrets/matrix_android_commander_credentials.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/cloudflare_worker_api_token.age) {
+        cloudflare_worker_api_token = {
+          file = ../../secrets/cloudflare_worker_api_token.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/cloudflare_dns_api_token.age) {
+        cloudflare_dns_api_token = {
+          file = ../../secrets/cloudflare_dns_api_token.age;
           owner = username;
           group = "users";
           mode = "0400";
@@ -1499,6 +1536,8 @@ in {
     fishPlugins.z
     androidSigningEnv
     matrixAndroidSecrets
+    cloudflareWorkerEnv
+    cloudflareDnsEnv
   ];
 
   # environment.loginShellInit = ''

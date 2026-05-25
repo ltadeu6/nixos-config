@@ -560,6 +560,8 @@ Estado atual:
 - `secrets/matrix_android_firebase_service_account.age`
 - `secrets/matrix_android_google_services.age`
 - `secrets/matrix_android_commander_credentials.age`
+- `secrets/cloudflare_worker_api_token.age`
+- `secrets/cloudflare_dns_api_token.age`
 - `secrets/minecraft_rcon_password.age`
 - `secrets/wireguard_private_key.age`
 
@@ -592,6 +594,14 @@ Estado atual:
   - `matrix_android_commander_credentials` materializa `.mc/credentials.json`.
 - O helper `matrix-android-secrets [project-dir]` cria symlinks desses tres arquivos para `/run/agenix`; por default usa o diretorio atual.
 - Nao migre `local.properties`, debug keystores, `.gradle`, `.wrangler` ou caches locais do `matrix-android` para este repo sem um motivo explicito.
+
+### Cloudflare
+
+- `secrets/cloudflare_worker_api_token.age` contem um token para deploy de Workers no account local.
+- `secrets/cloudflare_dns_api_token.age` contem um token para DNS/Zone Read.
+- `cloudflare-worker-env <comando>` exporta `CLOUDFLARE_API_TOKEN` apenas para o comando filho usando o token de Workers.
+- `cloudflare-dns-env <comando>` exporta `CLOUDFLARE_API_TOKEN` apenas para o comando filho usando o token de DNS.
+- O token bootstrap usado para criar outros tokens e temporario; nao mantenha `cloudflare_bootstrap_api_token.age` no repo depois de revogar o token na Cloudflare.
 
 ## Dependencias implicitas e pontos de atencao
 
