@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 let
   username = "ltadeu6";
   sshAuthorizedKeys = [
@@ -54,6 +54,33 @@ in {
   boot.tmp.cleanOnBoot = true;
   zramSwap.enable = true;
 
+  services.restic.backups.vps = {
+    initialize = true;
+    repository = "s3:https://axpppq49fptv.compat.objectstorage.sa-vinhedo-1.oraclecloud.com/bucket-20260526-1825";
+    passwordFile = "/etc/restic-secrets/password";
+    environmentFile = "/etc/restic-secrets/s3-env";
+    paths = [
+      "/var/lib/nextcloud/data"
+      "/var/lib/forgejo"
+      "/home/${username}/notebooks"
+      "/var/backup"
+    ];
+    backupPrepareCommand = ''
+      ${pkgs.util-linux}/bin/runuser -u postgres -- \
+        ${config.services.postgresql.package}/bin/pg_dump nextcloud \
+        > /var/backup/nextcloud-db.sql
+    '';
+    pruneOpts = [
+      "--keep-daily 7"
+      "--keep-weekly 4"
+      "--keep-monthly 3"
+    ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
+  };
+
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -78,6 +105,8 @@ in {
   systemd.tmpfiles.rules = [
     "d /home/${username}/notebooks 0750 ${username} users -"
     "d /etc/nextcloud-secrets 0750 nextcloud nextcloud -"
+    "d /etc/restic-secrets 0700 root root -"
+    "d /var/backup 0700 root root -"
   ];
 
   environment.etc."jupyter/jupyter_server_config.py".text = ''
