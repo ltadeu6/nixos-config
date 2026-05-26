@@ -43,6 +43,7 @@ in {
     htop
     jupyterEnv
     neovim
+    restic
     ripgrep
     starship
     tmux
