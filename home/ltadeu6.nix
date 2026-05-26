@@ -467,4 +467,16 @@ PY
   };
 
   programs.home-manager.enable = true;
+
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
+    matchBlocks = {
+      termux = {
+        hostname = "pixel-7a";
+        user = "u0_a254";
+        port = 8022;
+      };
+    };
+  };
 }

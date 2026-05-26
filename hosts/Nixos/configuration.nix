@@ -337,9 +337,6 @@ in {
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
           ../../secrets/minecraft_rcon_password.age;
-      } // lib.optionalAttrs
-      (builtins.pathExists ../../secrets/wireguard_private_key.age) {
-        wireguard_private_key.file = ../../secrets/wireguard_private_key.age;
       };
   };
 
@@ -377,6 +374,8 @@ in {
     ];
   };
 
+  services.tailscale.enable = true;
+
   networking = {
     hostName = "Nixos"; # Define your hostname.
     networkmanager.enable = true;
@@ -389,24 +388,6 @@ in {
     };
     defaultGateway = "192.168.1.1";
     nameservers = [ "8.8.8.8" "1.1.1.1" ];
-    extraHosts = ''
-      191.252.194.81 vps
-      204.216.130.111 NixOracle
-    '';
-    # Enable WireGuard
-    # wireguard.interfaces = {
-    #   wg0 = {
-    #     ips = [ "10.0.0.2/24" ];
-    #     listenPort = 51820;
-    #     privateKey = builtins.readFile config.age.secrets.wireguard_private_key.path;
-    #     peers = [{
-    #       publicKey = (import ../../secrets/secrets.nix).wireguard.peerPublicKey;
-    #       allowedIPs = [ "10.0.0.1" ];
-    #       endpoint = (import ../../secrets/secrets.nix).wireguard.endpoint;
-    #       persistentKeepalive = 25;
-    #     }];
-    #   };
-    # };
   };
 
   time.timeZone = "America/Sao_Paulo";

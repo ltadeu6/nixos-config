@@ -19,10 +19,4 @@ in {
   "secrets/cloudflare_worker_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/cloudflare_dns_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/minecraft_rcon_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
-  "secrets/wireguard_private_key.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
-
-  wireguard = {
-    peerPublicKey = "SZa3sH9QzjuhAzSFDybLbOxr3UxwPzV3SaiNLaJIjz0=";
-    endpoint = "vps32536.publiccloud.com.br:51820";
-  };
 }

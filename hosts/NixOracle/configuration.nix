@@ -83,7 +83,11 @@ in {
     c.PasswordIdentityProvider.password_required = True
   '';
 
+  services.tailscale.enable = true;
+
   networking.firewall.allowedTCPPorts = [ 80 443 ];
+  networking.firewall.allowedUDPPorts = [ 41641 ];
+  networking.firewall.trustedInterfaces = [ "tailscale0" ];
 
   security.acme = {
     acceptTerms = true;
