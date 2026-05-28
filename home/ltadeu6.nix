@@ -489,6 +489,10 @@ PY
         user = "u0_a254";
         port = 8022;
       };
+      win11 = {
+        hostname = "win11";
+        user = "user";
+      };
     };
   };
 }
