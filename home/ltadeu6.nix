@@ -3,12 +3,18 @@
 let
   gameSaveBackupRoot = "${config.home.homeDirectory}/Backups/game-saves";
   gameSaveLudusaviPath = "${gameSaveBackupRoot}/ludusavi";
+  gameSaveLutrisGames = [
+    "Cloudpunk"
+    "Cyberpunk 2077"
+    "Dreamcore"
+    "Outer Wilds"
+  ];
   gameSaveLudusaviBackup = pkgs.writeShellScript "game-save-ludusavi-backup" ''
     set -eu
 
     ${pkgs.coreutils}/bin/mkdir -p ${lib.escapeShellArg gameSaveLudusaviPath}
 
-    exec ${pkgs.ludusavi}/bin/ludusavi \
+    ${pkgs.ludusavi}/bin/ludusavi \
       --try-manifest-update \
       backup \
       --path ${lib.escapeShellArg gameSaveLudusaviPath} \
@@ -16,6 +22,17 @@ let
       --full-limit 14 \
       --differential-limit 14 \
       --force
+
+    exec ${pkgs.ludusavi}/bin/ludusavi \
+      --try-manifest-update \
+      backup \
+      --path ${lib.escapeShellArg gameSaveLudusaviPath} \
+      --wine-prefix ${lib.escapeShellArg "${config.home.homeDirectory}/Games/none"} \
+      --format simple \
+      --full-limit 14 \
+      --differential-limit 14 \
+      --force \
+      ${lib.concatMapStringsSep " " lib.escapeShellArg gameSaveLutrisGames}
   '';
   opencodeWithLibstdcxx = pkgs.symlinkJoin {
     name = "opencode";
