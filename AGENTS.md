@@ -53,8 +53,10 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 | `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
 | `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
 | `Pixel 7a` | — | — | `100.64.0.2` |
+| `win11` (VM GNOME Boxes) | DHCP em `192.168.122.0/24` | — | `100.90.206.104` |
 
 SSH para o VPS: `root@tadix.dev` ou `root@100.64.0.1` (Tailscale).
+SSH para a VM Windows: `ssh win11` via alias gerado pelo Home Manager, equivalente a `ssh user@win11`.
 
 ## Inputs do flake e dependencias externas
 
@@ -99,6 +101,9 @@ SSH para o VPS: `root@tadix.dev` ou `root@100.64.0.1` (Tailscale).
 - `hosts/Nixos/libvirt/win11-3.xml` registra a VM Windows 11 usada pelo GNOME Boxes.
 - A VM deve permanecer em `qemu:///session`; migrar para `qemu:///system` faz ela sair do fluxo normal do GNOME Boxes.
 - A interface de rede da VM usa `type='bridge'` com `source bridge='virbr0'` para dar IP em `192.168.122.0/24` e permitir SSH direto do host.
+- A VM tambem esta no Tailscale como `win11` (`100.90.206.104` no estado atual), entao prefira `ssh win11` quando o alias do Home Manager estiver aplicado.
+- O alias SSH fica em `programs.ssh.matchBlocks.win11` em `home/ltadeu6.nix`; nao edite `~/.ssh/config` diretamente.
+- O disco principal ainda usa SATA e a rede libvirt ainda usa `rtl8139`; migrar para VirtIO pode melhorar desempenho, mas so faca isso apos confirmar/instalar os drivers VirtIO dentro do Windows.
 - Nao reintroduza `passt` ou `portForward` nesse XML sem um motivo explicito; a configuracao atual depende de `qemu-bridge-helper` e de `/etc/qemu/bridge.conf` permitindo `virbr0`.
 - Para aplicar alteracoes nesse XML: `virsh --connect qemu:///session define hosts/Nixos/libvirt/win11-3.xml`.
 
