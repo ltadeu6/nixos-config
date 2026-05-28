@@ -1,6 +1,22 @@
 { config, pkgs, lib, ... }:
 
 let
+  gameSaveBackupRoot = "${config.home.homeDirectory}/Backups/game-saves";
+  gameSaveLudusaviPath = "${gameSaveBackupRoot}/ludusavi";
+  gameSaveLudusaviBackup = pkgs.writeShellScript "game-save-ludusavi-backup" ''
+    set -eu
+
+    ${pkgs.coreutils}/bin/mkdir -p ${lib.escapeShellArg gameSaveLudusaviPath}
+
+    exec ${pkgs.ludusavi}/bin/ludusavi \
+      --try-manifest-update \
+      backup \
+      --path ${lib.escapeShellArg gameSaveLudusaviPath} \
+      --format simple \
+      --full-limit 14 \
+      --differential-limit 14 \
+      --force
+  '';
   opencodeWithLibstdcxx = pkgs.symlinkJoin {
     name = "opencode";
     paths = [ pkgs.unstable.opencode ];
@@ -247,6 +263,7 @@ in
     man
     hyprpicker
     networkmanager
+    ludusavi
     prismlauncher
     gimp
     inkscape
@@ -373,6 +390,24 @@ in
     ".config/wofi/style.css".source = ../configs/wofi/style.css;
     ".config/wofi/menu".source = ../configs/wofi/menu;
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
+  };
+
+  systemd.user.services.game-save-ludusavi-backup = {
+    Unit.Description = "Back up game saves with Ludusavi";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${gameSaveLudusaviBackup}";
+    };
+  };
+
+  systemd.user.timers.game-save-ludusavi-backup = {
+    Unit.Description = "Run Ludusavi game-save backup";
+    Timer = {
+      OnCalendar = "hourly";
+      Persistent = true;
+      RandomizedDelaySec = "10min";
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 
   home.activation.ociCredentials = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

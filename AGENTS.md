@@ -341,6 +341,7 @@ Pacotes de sessao e desktop usados diretamente pelos configs:
 - `slurp`
 - `wl-clipboard`
 - `networkmanager`
+- `ludusavi`
 - `hyprpicker`
 - `papirus-icon-theme`
 - `mpv`
@@ -573,6 +574,26 @@ Estado atual:
   - busca token em `OPENCLAW_GATEWAY_TOKEN`
   - aponta o provider Ollama para `http://127.0.0.1:11434`
   - usa modelo `ollama/gemma4:e4b`
+
+### Backups locais de saves de jogos
+
+Fonte principal:
+
+- `home/ltadeu6.nix`
+
+Estado atual:
+
+- O Home Manager instala `ludusavi`.
+- O timer de usuario `game-save-ludusavi-backup.timer` roda de hora em hora.
+- O servico `game-save-ludusavi-backup.service` executa Ludusavi em modo CLI.
+- Os backups locais ficam em `~/Backups/game-saves/ludusavi`.
+- O formato usado e `simple`, com retencao de 14 backups completos e 14 diferenciais por jogo.
+
+Cuidados:
+
+- Este fluxo e apenas local; nao ha Restic, OCI ou outro destino remoto para saves de jogos no estado atual.
+- Se adicionar backup remoto depois, mantenha segredos fora do repo e prefira um repo separado dos backups do VPS.
+- Nao faca backup bruto de `~/.local/share/Steam/steamapps`; prefira Ludusavi e excecoes pontuais para jogos nao detectados.
 
 ## Secrets e variaveis de ambiente
 
