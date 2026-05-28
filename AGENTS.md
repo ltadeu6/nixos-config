@@ -41,6 +41,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/Nixos/libvirt/`: XMLs versionados de VMs locais usadas no host `Nixos`.
 - `secrets/secrets.nix`: regras do agenix.
 - `secrets/*.age`: segredos criptografados.
+- `deploy-oracle.sh`: script de deploy do NixOracle com snapshot automatica pre-deploy.
 - `openclaw/documents/`: documentos consumidos pelo modulo opcional do OpenClaw.
 - `.codex/`: metadata local de ferramentas/agentes; nao faz parte da configuracao do sistema.
 - `README.md`: resumo humano do repo; o `AGENTS.md` deve ser mais preciso para trabalho automatizado.
@@ -275,6 +276,8 @@ Este modulo concentra:
   - `HYPRCURSOR_SIZE`
   - `QT_QPA_PLATFORMTHEME`
 - ativacao custom:
+  - `home.activation.ociCredentials`
+  - cria `~/.oci/` e symlinks `key.pem` e `config` para `/run/agenix/oci_key` e `/run/agenix/oci_config`
   - `home.activation.openclawGatewayEnv`
   - gera `~/.config/openclaw/gateway.env` a partir de `/run/agenix/openclaw_gateway_token`
 
@@ -564,6 +567,8 @@ Estado atual:
 - `secrets/cloudflare_dns_api_token.age`
 - `secrets/minecraft_rcon_password.age`
 - `secrets/wireguard_private_key.age`
+- `secrets/oci_key.age`
+- `secrets/oci_config.age`
 
 ### Regras do agenix
 
@@ -706,6 +711,8 @@ Cuidados:
 - `~/.config/hypr/scripts/screenshot-active-window.sh`
 - `~/.config/hyfetch.json`
 - `~/.config/openclaw/gateway.env`
+- `~/.oci/config` (symlink para `/run/agenix/oci_config`)
+- `~/.oci/key.pem` (symlink para `/run/agenix/oci_key`)
 - `/etc/antimicrox/controller-mouse.amgp`
 - `/etc/antimicrox/player-toggle.sh`
 - `/etc/antimicrox/disable-controller.sh`
@@ -714,9 +721,16 @@ Cuidados:
 
 ## Comandos uteis
 
+### Deploy NixOracle (com snapshot automatica)
+
+- `./deploy-oracle.sh`
+- Requer `~/.oci/` configurado (gerado automaticamente pelo Home Manager apos rebuild local).
+- Cria snapshot incremental do boot volume antes de cada deploy, mantendo no maximo 4.
+
 ### Rebuild / apply
 
 - `sudo nixos-rebuild switch --flake .#Nixos`
+- NixOracle: `nixos-rebuild switch --flake .#NixOracle --target-host root@tadix.dev` (ou via `./deploy-oracle.sh`)
 
 ### Validacao mais fiel do sistema
 
