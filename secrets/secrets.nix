@@ -19,4 +19,6 @@ in {
   "secrets/cloudflare_worker_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/cloudflare_dns_api_token.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
   "secrets/minecraft_rcon_password.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/oci_key.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
+  "secrets/oci_config.age".publicKeys = [ users.ltadeu6 systems.Nixos ];
 }

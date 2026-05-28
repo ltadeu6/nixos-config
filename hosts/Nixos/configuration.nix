@@ -337,6 +337,22 @@ in {
       (builtins.pathExists ../../secrets/minecraft_rcon_password.age) {
         minecraft_rcon_password.file =
           ../../secrets/minecraft_rcon_password.age;
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/oci_key.age) {
+        oci_key = {
+          file = ../../secrets/oci_key.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
+      } // lib.optionalAttrs
+      (builtins.pathExists ../../secrets/oci_config.age) {
+        oci_config = {
+          file = ../../secrets/oci_config.age;
+          owner = username;
+          group = "users";
+          mode = "0400";
+        };
       };
   };
 

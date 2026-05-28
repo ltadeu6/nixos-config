@@ -375,6 +375,18 @@ in
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
   };
 
+  home.activation.ociCredentials = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    set -euo pipefail
+    key_file="/run/agenix/oci_key"
+    config_file="/run/agenix/oci_config"
+    if [ -r "$key_file" ] && [ -r "$config_file" ]; then
+      mkdir -p "$HOME/.oci"
+      chmod 700 "$HOME/.oci"
+      ln -sf "$key_file" "$HOME/.oci/key.pem"
+      ln -sf "$config_file" "$HOME/.oci/config"
+    fi
+  '';
+
   home.activation.openclawGatewayEnv = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     set -euo pipefail
     token_file="/run/agenix/openclaw_gateway_token"
