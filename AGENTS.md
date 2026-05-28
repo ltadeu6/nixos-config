@@ -46,6 +46,16 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `.codex/`: metadata local de ferramentas/agentes; nao faz parte da configuracao do sistema.
 - `README.md`: resumo humano do repo; o `AGENTS.md` deve ser mais preciso para trabalho automatizado.
 
+## Topologia de rede
+
+| Host | IP local | IP publico | Tailscale |
+|------|----------|------------|-----------|
+| `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
+| `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
+| `Pixel 7a` | — | — | `100.64.0.2` |
+
+SSH para o VPS: `root@tadix.dev` ou `root@100.64.0.1` (Tailscale).
+
 ## Inputs do flake e dependencias externas
 
 ### Inputs declarados em `flake.nix`
@@ -136,15 +146,24 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `openclaw/documents/` so importa quando `enableOpenClaw = true`.
 - Nao altere `openclaw/documents/` achando que isso afetara o sistema atual sem antes verificar se o modulo esta habilitado.
 
+### Servicos locais (maquina Nixos)
+
+| Servico | URL / Porta | Notas |
+|---------|-------------|-------|
+| Home Assistant | `http://localhost:8123` | Token em `~/.config/secrets/ha_token` (nao e agenix) |
+| Ollama | `http://127.0.0.1:11434` | CUDA, `OLLAMA_CONTEXT_LENGTH=64000` |
+| Open WebUI | `http://localhost:8080` | Interface web para Ollama |
+| JupyterHub | porta `8000` | Desabilitado por padrao |
+
 ### Ollama / modelos locais
 
 - Fonte principal: `services.ollama` em `hosts/Nixos/configuration.nix`.
+- Endpoint: `http://127.0.0.1:11434`
+- `OLLAMA_CONTEXT_LENGTH=64000` — nao reduza para 8k; quebra prompts grandes com schemas de ferramentas.
 - Modelos sincronizados hoje:
-  - `gemma4:e4b`
-  - `gpt-oss:20b`
-  - `qwen2.5-coder:7b`
-- `gpt-oss:20b` e o candidato preferido para testar agentes executores locais.
-- `qwen2.5-coder:7b` pode funcionar para chat/codigo, mas mostrou baixa confiabilidade para tool-calling em agentes.
+  - `gemma4:e4b` — preferido para agentes
+  - `gpt-oss:20b` — candidato para agentes executores locais
+  - `qwen2.5-coder:7b` — chat/codigo, baixa confiabilidade para tool-calling
 
 ## Estrutura funcional atual
 
@@ -720,6 +739,24 @@ Cuidados:
 - `/etc/profile.d/openclaw.sh`
 
 ## Comandos uteis
+
+### Servicos no NixOracle (VPS)
+
+| Servico | URL | Porta interna | Notas |
+|---------|-----|---------------|-------|
+| Homepage | `tadix.dev` | — | Site estatico |
+| Forgejo | `git.tadix.dev` | `3000` | Git; token em `$FORGEJO_API_TOKEN` |
+| Nextcloud 32 | `nextcloud.tadix.dev` | — | PostgreSQL local; admin: `ltadeu6` |
+| JupyterLab | `jupyter.tadix.dev` | `8888` | Senha protegida |
+| BioLab | `biolab.tadix.dev` | — | Site estatico do repo BioLab |
+
+**Forgejo API:** base URL `https://git.tadix.dev/api/v1`. Token disponivel em `$FORGEJO_API_TOKEN` no ambiente de shell.
+Exemplo: `curl -H "Authorization: token $FORGEJO_API_TOKEN" https://git.tadix.dev/api/v1/user`
+
+**Restic backup diario** → Oracle Object Storage (`bucket-20260526-1825`, regiao `sa-vinhedo-1`).
+Itens salvos: dados do Nextcloud, repositorios do Forgejo, notebooks, dump PostgreSQL do Nextcloud.
+Retencao: 7 diarios, 4 semanais, 3 mensais.
+Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env` (nao sao agenix; provisionados manualmente no VPS).
 
 ### Deploy NixOracle (com snapshot automatica)
 
