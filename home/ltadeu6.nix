@@ -492,6 +492,10 @@ PY
       win11 = {
         hostname = "win11";
         user = "user";
+        extraOptions = {
+          RemoteCommand = "powershell -NoLogo";
+          RequestTTY = "yes";
+        };
       };
     };
   };
