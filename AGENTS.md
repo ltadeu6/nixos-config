@@ -588,14 +588,17 @@ Estado atual:
 - O servico `game-save-ludusavi-backup.service` executa Ludusavi em modo CLI.
 - Os backups locais ficam em `~/Backups/game-saves/ludusavi`.
 - O formato usado e `simple`, com retencao de 14 backups completos e 14 diferenciais por jogo.
-- O backup roda uma segunda passada do Ludusavi com o Wine prefix `~/Games/none` apenas para jogos selecionados do Lutris: `Cloudpunk`, `Cyberpunk 2077`, `Dreamcore` e `Outer Wilds`.
+- Para jogos do Lutris no prefix `~/Games/none`, o servico tambem cria snapshots locais de `~/Games/none/drive_c/users/steamuser`.
+- Esses snapshots ficam em `~/Backups/game-saves/lutris-wine-userdata/snapshots`, com `latest` apontando para o snapshot mais recente.
+- Os snapshots do Lutris usam hardlinks via `rsync --link-dest` e mantem os 14 mais recentes.
 
 Cuidados:
 
 - Este fluxo e apenas local; nao ha Restic, OCI ou outro destino remoto para saves de jogos no estado atual.
 - Se adicionar backup remoto depois, mantenha segredos fora do repo e prefira um repo separado dos backups do VPS.
 - Nao faca backup bruto de `~/.local/share/Steam/steamapps`; prefira Ludusavi e excecoes pontuais para jogos nao detectados.
-- Nao use `--wine-prefix ~/Games/none` em uma varredura geral sem nomes de jogos; isso gera muitos falsos positivos por causa dos arquivos de registro do prefix.
+- Nao use `--wine-prefix ~/Games/none` em uma varredura geral do Ludusavi sem nomes de jogos; isso gera muitos falsos positivos por causa dos arquivos de registro do prefix.
+- Se adicionar jogos novos ao Lutris usando o mesmo prefix `~/Games/none`, eles entram automaticamente no snapshot local do Lutris, mesmo que o Ludusavi nao conheca o jogo.
 
 ## Secrets e variaveis de ambiente
 

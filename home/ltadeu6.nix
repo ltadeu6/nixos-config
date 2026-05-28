@@ -3,12 +3,9 @@
 let
   gameSaveBackupRoot = "${config.home.homeDirectory}/Backups/game-saves";
   gameSaveLudusaviPath = "${gameSaveBackupRoot}/ludusavi";
-  gameSaveLutrisGames = [
-    "Cloudpunk"
-    "Cyberpunk 2077"
-    "Dreamcore"
-    "Outer Wilds"
-  ];
+  gameSaveLutrisWinePrefix = "${config.home.homeDirectory}/Games/none";
+  gameSaveLutrisUserPath = "${gameSaveLutrisWinePrefix}/drive_c/users/steamuser";
+  gameSaveLutrisBackupPath = "${gameSaveBackupRoot}/lutris-wine-userdata";
   gameSaveLudusaviBackup = pkgs.writeShellScript "game-save-ludusavi-backup" ''
     set -eu
 
@@ -23,16 +20,37 @@ let
       --differential-limit 14 \
       --force
 
-    exec ${pkgs.ludusavi}/bin/ludusavi \
-      --try-manifest-update \
-      backup \
-      --path ${lib.escapeShellArg gameSaveLudusaviPath} \
-      --wine-prefix ${lib.escapeShellArg "${config.home.homeDirectory}/Games/none"} \
-      --format simple \
-      --full-limit 14 \
-      --differential-limit 14 \
-      --force \
-      ${lib.concatMapStringsSep " " lib.escapeShellArg gameSaveLutrisGames}
+    if [ ! -d ${lib.escapeShellArg gameSaveLutrisUserPath} ]; then
+      echo "Skipping Lutris Wine user-data snapshot: missing ${gameSaveLutrisUserPath}" >&2
+      exit 0
+    fi
+
+    snapshot_root=${lib.escapeShellArg "${gameSaveLutrisBackupPath}/snapshots"}
+    snapshot="$snapshot_root/backup-$(${pkgs.coreutils}/bin/date -u +%Y%m%dT%H%M%SZ)"
+    latest_link=${lib.escapeShellArg "${gameSaveLutrisBackupPath}/latest"}
+    link_dest_args=()
+
+    ${pkgs.coreutils}/bin/mkdir -p "$snapshot_root"
+
+    if [ -L "$latest_link" ]; then
+      latest_target="$(${pkgs.coreutils}/bin/readlink -f "$latest_link" || true)"
+      if [ -n "$latest_target" ] && [ -d "$latest_target" ]; then
+        link_dest_args=(--link-dest "$latest_target")
+      fi
+    fi
+
+    ${pkgs.rsync}/bin/rsync -a --delete \
+      "''${link_dest_args[@]}" \
+      ${lib.escapeShellArg "${gameSaveLutrisUserPath}/"} \
+      "$snapshot/"
+    ${pkgs.coreutils}/bin/ln -sfn "$snapshot" "$latest_link"
+
+    ${pkgs.findutils}/bin/find "$snapshot_root" -mindepth 1 -maxdepth 1 -type d \
+      -printf '%T@ %p\n' \
+      | ${pkgs.coreutils}/bin/sort -rn \
+      | ${pkgs.coreutils}/bin/tail -n +15 \
+      | ${pkgs.gnused}/bin/sed 's/^[^ ]* //' \
+      | ${pkgs.findutils}/bin/xargs -r ${pkgs.coreutils}/bin/rm -rf
   '';
   opencodeWithLibstdcxx = pkgs.symlinkJoin {
     name = "opencode";
