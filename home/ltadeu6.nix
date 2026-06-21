@@ -1,6 +1,32 @@
 { config, pkgs, lib, ... }:
 
 let
+  fluidsynthStart = pkgs.writeShellScript "fluidsynth-start" ''
+    ${pkgs.fluidsynth}/bin/fluidsynth \
+      -a pulseaudio -m alsa_seq -g 1.0 -q \
+      ${pkgs.soundfont-fluid}/share/soundfonts/FluidR3_GM2-2.sf2 >/dev/null &
+    FLUID_PID=$!
+
+    # Loop indefinitely: connect Minilab3 when it appears, reconnect if unplugged
+    while kill -0 "$FLUID_PID" 2>/dev/null; do
+      MINI=$(${pkgs.gawk}/bin/awk '/"Minilab3"/{print $2}' /proc/asound/seq/clients 2>/dev/null)
+      FLUID=$(${pkgs.gawk}/bin/awk '/FLUID Synth/{print $2}' /proc/asound/seq/clients 2>/dev/null)
+      if [ -n "$MINI" ] && [ -n "$FLUID" ]; then
+        if ${pkgs.alsa-utils}/bin/aconnect -l 2>/dev/null | grep -q "Connected From:.*$MINI"; then
+          : # already connected
+        else
+          echo "Connecting Minilab3 ($MINI) -> FluidSynth ($FLUID)" >&2
+          ${pkgs.alsa-utils}/bin/aconnect "$MINI:0" "$FLUID:0" >&2
+        fi
+      else
+        echo "Waiting: MINI='$MINI' FLUID='$FLUID'" >&2
+      fi
+      ${pkgs.coreutils}/bin/sleep 2
+    done
+
+    wait $FLUID_PID
+  '';
+
   gameSaveBackupRoot = "${config.home.homeDirectory}/Backups/game-saves";
   gameSaveLudusaviPath = "${gameSaveBackupRoot}/ludusavi";
   gameSaveLutrisWinePrefix = "${config.home.homeDirectory}/Games/none";
@@ -346,6 +372,10 @@ in
     sageWithDoc
     evince
     poppler-utils
+    fluidsynth
+    soundfont-fluid
+    alsa-utils
+    spotify-player
   ];
 
   home.file = {
@@ -425,6 +455,20 @@ in
     ".config/wofi/style.css".source = ../configs/wofi/style.css;
     ".config/wofi/menu".source = ../configs/wofi/menu;
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
+  };
+
+  systemd.user.services.fluidsynth = {
+    Unit = {
+      Description = "FluidSynth software MIDI synthesizer";
+      After = [ "pipewire-pulse.service" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${fluidsynthStart}";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+    Install.WantedBy = [ "default.target" ];
   };
 
   systemd.user.services.game-save-ludusavi-backup = {
