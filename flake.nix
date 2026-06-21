@@ -67,6 +67,16 @@
         inherit system;
         modules = [
           ./hosts/NixOracle/configuration.nix
+          {
+            nixpkgs.overlays = [
+              (final: prev: {
+                unstable = import nixpkgs-unstable {
+                  inherit system;
+                  config = prev.config;
+                };
+              })
+            ];
+          }
         ];
       };
     };

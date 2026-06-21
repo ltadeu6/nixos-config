@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ pkgs, config, lib, ... }:
 let
   username = "ltadeu6";
   sshAuthorizedKeys = [
@@ -36,7 +36,13 @@ in {
     ./hardware-configuration.nix
   ];
 
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [
+      "claude-code"
+    ];
+
   environment.systemPackages = with pkgs; [
+    claude-code
     curl
     fd
     git
@@ -47,6 +53,7 @@ in {
     ripgrep
     starship
     tmux
+    unstable.codex
     wget
   ];
 
