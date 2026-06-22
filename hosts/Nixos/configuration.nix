@@ -1326,6 +1326,19 @@ in {
   services.home-assistant.lovelaceConfigFile =
     ../../configs/home-assistant/ui-lovelace.yaml;
 
+  systemd.services.home-assistant = {
+    wants = [ "tailscaled.service" ];
+    after = [ "tailscaled.service" ];
+    preStart = lib.mkAfter ''
+      for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+        if ${pkgs.glibc.bin}/bin/getent hosts api-aic.lgthinq.com >/dev/null; then
+          break
+        fi
+        ${pkgs.coreutils}/bin/sleep 1
+      done
+    '';
+  };
+
   environment.etc."home-assistant/ui-overview.yaml".source =
     ../../configs/home-assistant/ui-overview.yaml;
 
