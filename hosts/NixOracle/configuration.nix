@@ -60,7 +60,15 @@ in {
   services.logrotate.checkConfig = false;
 
   boot.tmp.cleanOnBoot = true;
-  zramSwap.enable = true;
+  zramSwap = {
+    enable = true;
+    memoryPercent = 100;
+  };
+
+  systemd.coredump.extraConfig = ''
+    Storage=none
+    ProcessSizeMax=0
+  '';
 
   services.restic.backups.vps = {
     initialize = true;
@@ -196,6 +204,12 @@ in {
       dbtype = "pgsql";
     };
     phpOptions."opcache.interned_strings_buffer" = "16";
+    poolSettings = {
+      pm = "ondemand";
+      "pm.max_children" = 4;
+      "pm.process_idle_timeout" = "20s";
+      "pm.max_requests" = 200;
+    };
     settings = {
       default_phone_region = "BR";
       maintenance_window_start = 1;
@@ -267,6 +281,9 @@ in {
       WorkingDirectory = "/home/${username}/notebooks";
       Restart = "on-failure";
       RestartSec = 5;
+      MemoryHigh = "320M";
+      MemoryMax = "420M";
+      MemorySwapMax = "256M";
       ExecStart =
         "${jupyterEnv}/bin/jupyter-lab --config=/etc/jupyter/jupyter_server_config.py";
     };
