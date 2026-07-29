@@ -65,10 +65,10 @@ in {
     memoryPercent = 100;
   };
 
-  systemd.coredump.extraConfig = ''
-    Storage=none
-    ProcessSizeMax=0
-  '';
+  systemd.coredump.settings.Coredump = {
+    Storage = "none";
+    ProcessSizeMax = 0;
+  };
 
   services.restic.backups.vps = {
     initialize = true;

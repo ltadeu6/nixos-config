@@ -62,9 +62,9 @@ SSH para a VM Windows: `ssh win11` via alias gerado pelo Home Manager, equivalen
 
 ### Inputs declarados em `flake.nix`
 
-- `nixpkgs`: canal principal `nixos-25.11`.
+- `nixpkgs`: canal principal `nixos-26.05`.
 - `nixpkgs-unstable`: canal `nixos-unstable`, exposto via overlay como `pkgs.unstable`.
-- `home-manager`: `release-25.11`, seguindo o `nixpkgs` principal.
+- `home-manager`: `release-26.05`, seguindo o `nixpkgs` principal.
 - `agenix`: gerenciamento de segredos.
 - `nix-openclaw`: overlay e modulo opcional do OpenClaw.
 
@@ -223,7 +223,6 @@ Este modulo concentra:
   - `git`
   - `gamemode`
   - `firefox`
-  - `adb`
 - servicos habilitados:
   - `fstrim`
   - `home-assistant`
@@ -399,8 +398,8 @@ Comportamentos importantes:
   - `waybar`
   - `hyprpaper`
   - `dbus-launch kdeconnect-indicator`
-  - `antimicrox` com perfil em `/etc/antimicrox/controller-mouse.amgp`
   - shell snippet que usa `hyprctl`, `jq` e `xrandr` para forcar monitor primario
+- `antimicrox` e o perfil `/etc/antimicrox/controller-mouse.amgp` continuam instalados, mas nao iniciam automaticamente porque o perfil pode prender o cursor no centro da tela.
 - Launcher:
   - usa `wofi --show drun`
 - Screenshots:

@@ -486,7 +486,6 @@ in {
     git.enable = true;
     gamemode.enable = true;
     firefox.enable = true;
-    adb.enable = true;
   };
 
   security.polkit.enable = true;
@@ -892,18 +891,18 @@ in {
     };
     ollama = {
       enable = true;
-      # Nixpkgs' plain `ollama` is typically CPU-only; use the CUDA variant on NVIDIA.
+      # Nixpkgs' plain `ollama` is typically CPU-only; use the CUDA variant on NVIDIA (RTX 4060).
       package = pkgs.unstable.ollama-cuda;
-      acceleration = "cuda";
       host = "[::]";
       environmentVariables = {
         # Agent CLIs send large prompts with tool schemas; 8k truncates tool-use instructions.
-        OLLAMA_CONTEXT_LENGTH = "64000";
+        # 32k fits qwen3.5:9b + q8_0 KV cache within the 4060's 8 GB VRAM.
+        OLLAMA_CONTEXT_LENGTH = "32768";
+        OLLAMA_FLASH_ATTENTION = "1";
+        OLLAMA_KV_CACHE_TYPE = "q8_0";
       };
       loadModels = [
-        "gemma4:e4b"
-        "gpt-oss:20b"
-        "qwen2.5-coder:7b"
+        "qwen3.5:9b"
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";
@@ -1351,6 +1350,7 @@ in {
       "networkmanager"
       "wheel"
       "storage"
+      "uinput"
     ];
     shell = pkgs.fish;
   };
@@ -1518,6 +1518,7 @@ in {
     hyfetch
     cacert
     fragments
+    android-tools
     antimicrox
     kitty
     lutris
@@ -1541,8 +1542,8 @@ in {
     cmake
     gcc
     gnumake
-    nodePackages.prettier
-    nodePackages.pnpm
+    prettier
+    pnpm
     fishPlugins.z
     androidSigningEnv
     matrixAndroidSecrets

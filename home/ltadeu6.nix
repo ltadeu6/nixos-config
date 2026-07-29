@@ -225,6 +225,7 @@ in
       gtk-xft-hintstyle = "hintmedium";
       gtk-xft-rgba = "rgb";
     };
+    gtk4.theme = config.gtk.theme;
   };
 
   home.pointerCursor = {
@@ -279,6 +280,7 @@ in
   xdg.userDirs = {
     enable = true;
     createDirectories = true;
+    setSessionVariables = true;
     desktop = "$HOME/Área de trabalho";
     download = "$HOME/Downloads";
     templates = "$HOME/Modelos";
@@ -319,7 +321,7 @@ in
     ripgrep
     fd
     ffmpeg
-    nixfmt-classic
+    nixfmt
     editorconfig-core-c
     man
     hyprpicker
@@ -381,12 +383,13 @@ in
   home.file = {
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".text = ''
-      preload = ${config.home.homeDirectory}/.config/hypr/nixos.png
-
-      #if more than one preload is desired then continue to preload other backgrounds
-
-      #set the default wallpaper(s) seen on initial workspace(s) --depending on the number of monitors used
-      wallpaper = , ${config.home.homeDirectory}/.config/hypr/nixos.png
+      # hyprpaper 0.8 replaced the old `preload =` / `wallpaper = ,path` syntax
+      # with `wallpaper {}` blocks. Empty monitor = fallback for all outputs.
+      wallpaper {
+        monitor =
+        path = ${config.home.homeDirectory}/.config/hypr/nixos.png
+        fit_mode = cover
+      }
 
       splash = false
     '';
@@ -597,19 +600,20 @@ PY
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;
-    matchBlocks = {
+    # home-manager 26.05 deprecated `matchBlocks` (camelCase opts) in favour of
+    # `settings`, which uses upstream ssh_config directive names. Attribute keys
+    # become `Host <name>` blocks, preserving the `ssh termux` / `ssh win11` aliases.
+    settings = {
       termux = {
-        hostname = "pixel-7a";
-        user = "u0_a254";
-        port = 8022;
+        HostName = "pixel-7a";
+        User = "u0_a254";
+        Port = 8022;
       };
       win11 = {
-        hostname = "win11";
-        user = "user";
-        extraOptions = {
-          RemoteCommand = "powershell -NoLogo";
-          RequestTTY = "yes";
-        };
+        HostName = "win11";
+        User = "user";
+        RemoteCommand = "powershell -NoLogo";
+        RequestTTY = "yes";
       };
     };
   };
