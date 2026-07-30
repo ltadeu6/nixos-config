@@ -910,6 +910,10 @@ in {
     open-webui = {
       enable = true;
       host = "0.0.0.0";
+      # open-webui 0.11.0 calls Path.home() at startup; the DynamicUser sandbox
+      # has no HOME, so it aborts with "Could not determine home directory".
+      # Point HOME at the state dir to fix startup.
+      environment.HOME = "/var/lib/open-webui";
     };
     jupyterhub = {
       enable = false;
