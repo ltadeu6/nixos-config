@@ -872,10 +872,52 @@ Relatos do mesmo problema na OCI:
 3. `POST /20160918/volumeAttachments` anexando o boot volume a **outra**
    instancia como `paravirtualized`.
 4. Montar somente-leitura (`mount -o ro /dev/sdb1 /mnt/...`) e inspecionar.
-5. Ao terminar: `umount`, **`echo 1 > /sys/block/sdb/device/delete`**, desanexar.
+5. Ao terminar, **nesta ordem**: `umount` →
+   `echo 1 > /sys/block/sdb/device/delete` → só então pedir o detach na API.
 
-O passo 5 nao e opcional: sem remover o dispositivo SCSI do kernel do host de
-resgate, a OCI deixa o attachment preso em `DETACHING` indefinidamente.
+A ordem do passo 5 nao e opcional. Se o host de resgate for uma maquina
+infectada (sem Oracle Cloud Agent — ver secao acima), pedir o detach antes de
+soltar o dispositivo no kernel deixa o attachment preso em `DETACHING` para
+sempre; fazer o `device/delete` depois **nao** conserta.
+
+#### Por que o control plane trava: nao existe Oracle Cloud Agent
+
+**Causa raiz de praticamente todos os travamentos de API nestes hosts.**
+
+As imagens Ubuntu da OCI trazem o **Oracle Cloud Agent** (snap
+`oracle-cloud-agent`). O `nixos-infect` apaga isso no lustrate, e **nao existe
+pacote equivalente no nixpkgs**. Confirmado no `NixOracle`: nenhuma unit,
+nenhum binario, nenhum processo Oracle; `qemu-guest-agent` tambem ausente.
+
+A OCI usa esse agente para receber confirmacao do guest em operacoes que
+dependem de cooperacao de dentro da maquina:
+
+| Operacao | O que a OCI espera | Sem agente |
+|----------|--------------------|------------|
+| `STOP` / `SOFTRESET` | agente confirma o shutdown | fica em `STOPPING` indefinidamente |
+| detach de volume | agente confirma que o guest soltou o disco | fica em `DETACHING` indefinidamente |
+
+**A maquina funciona normalmente.** O que quebra sao as operacoes de control
+plane. Um host infectado serve trafego feliz enquanto a API mente sobre o
+estado dele.
+
+**Consequencias praticas:**
+
+- **A ordem importa.** Antes de pedir detach pela API, solte o dispositivo
+  dentro do guest: `umount` e depois
+  `echo 1 > /sys/block/sdX/device/delete`. Fazer isso *depois* do detach nao
+  desatola — em 2026-08-04 um attachment ficou preso em `DETACHING` por mais de
+  3 h e sobreviveu a um reboot completo.
+- Nao confie em `lifecycleState` para hosts infectados. Confirme por SSH.
+- Evite `STOP`/`SOFTRESET` pela API nestes hosts. Se precisar parar, desligue
+  por dentro (`poweroff`) e deixe a OCI observar a maquina sumir.
+- Os guias de NixOS na OCI que existem por ai nao mencionam isto; assuma que
+  qualquer host infectado tera esse comportamento.
+
+Referencias:
+- <https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/manage-plugins.htm>
+- <https://discourse.nixos.org/t/looking-for-instructions-on-how-to-build-nixos-for-oci-cloud-images/40217>
+- <https://mdleom.com/blog/2021/03/09/nixos-oracle/>
 
 #### Armadilhas do control plane da OCI
 
