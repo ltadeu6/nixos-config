@@ -8,7 +8,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 
 - Este repo contem a configuracao pessoal de NixOS e Home Manager da maquina `Nixos`.
 - O setup e especifico para o usuario `ltadeu6` e para os hosts versionados neste repo; nao trate este repo como template generico sem adaptar usuario, host, mounts, rede e segredos.
-- O flake principal gera `nixosConfigurations.Nixos` e `nixosConfigurations.NixOracle`.
+- O flake principal gera `nixosConfigurations.Nixos`, `nixosConfigurations.NixOracle` e `nixosConfigurations.NixOracle2`.
 - O Home Manager esta embutido no modulo NixOS; nao existe fluxo separado de `home-manager switch`.
 
 ## Regras gerais para agentes
@@ -29,6 +29,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/Nixos/hardware-configuration.nix`: hardware, filesystem e driver de video; gerado pelo NixOS.
 - `hosts/NixOracle/configuration.nix`: modulo minimo do VPS `NixOracle`.
 - `hosts/NixOracle/hardware-configuration.nix`: placeholder para o hardware do VPS; substitua pelo gerado no host.
+- `hosts/NixOracle2/configuration.nix`: modulo minimo do segundo VPS Always Free `NixOracle2`; hoje so SSH, sem servicos.
+- `hosts/NixOracle2/hardware-configuration.nix`: hardware real do host, gerado pelo `nixos-infect` e commitado.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
@@ -52,6 +54,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 |------|----------|------------|-----------|
 | `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
 | `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
+| `NixOracle2` (VPS Always Free 2) | — | `204.216.173.108` | — |
 | `Pixel 7a` | — | — | `100.64.0.2` |
 | `win11` (VM GNOME Boxes) | DHCP em `192.168.122.0/24` | — | `100.90.206.104` |
 
@@ -798,6 +801,15 @@ Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env`
 
 - `sudo nixos-rebuild switch --flake .#Nixos`
 - NixOracle: `nixos-rebuild switch --flake .#NixOracle --target-host root@tadix.dev` (ou via `./deploy-oracle.sh`)
+- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@204.216.173.108`
+
+### Notas sobre o `NixOracle2`
+
+- Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre a imagem Ubuntu 22.04 da OCI.
+- Shape `VM.Standard.E2.1.Micro`: 1 OCPU e 1 GB de RAM. Alem do `zramSwap`, existe um `/swapfile` de 2 GB em disco; sem ele um `nixos-rebuild` no proprio host tende a morrer por OOM.
+- `boot.kernelParams` habilita `console=ttyS0`. Nao remova: sem isso o console serial da OCI fica mudo e uma falha de boot vira caixa preta.
+- Ao reiniciar apos mexer no bootloader, use reboot limpo. A ESP e vfat e nao tem journal; `systemctl reboot -f` logo apos `switch-to-configuration boot` ja deixou o host sem bootar.
+- A terceira chave em `sshAuthorizedKeys` e o par de API da OCI reaproveitado no bootstrap; trocar por chave SSH dedicada e remover.
 
 ### Validacao mais fiel do sistema
 
