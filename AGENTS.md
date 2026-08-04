@@ -30,7 +30,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/NixOracle/configuration.nix`: modulo minimo do VPS `NixOracle`.
 - `hosts/NixOracle/hardware-configuration.nix`: placeholder para o hardware do VPS; substitua pelo gerado no host.
 - `hosts/NixOracle2/configuration.nix`: modulo minimo do segundo VPS Always Free `NixOracle2`; hoje so SSH, sem servicos.
-- `hosts/NixOracle2/hardware-configuration.nix`: hardware real do host, gerado pelo `nixos-infect` e commitado.
+- `hosts/NixOracle2/hardware-configuration.nix`: hardware do host. Gerado pelo `nixos-infect` e **corrigido a mao** — o bloco que declara `/boot` e o que faz a maquina bootar; ver "A armadilha do /boot" no fim deste arquivo antes de editar.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
@@ -54,7 +54,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 |------|----------|------------|-----------|
 | `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
 | `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
-| `NixOracle2` (VPS Always Free 2) | — | `204.216.173.108` | — |
+| `NixOracle2` (VPS Always Free 2) | — | IP efemero, muda a cada recriacao | — |
 | `Pixel 7a` | — | — | `100.64.0.2` |
 | `win11` (VM GNOME Boxes) | DHCP em `192.168.122.0/24` | — | `100.90.206.104` |
 
@@ -801,15 +801,118 @@ Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env`
 
 - `sudo nixos-rebuild switch --flake .#Nixos`
 - NixOracle: `nixos-rebuild switch --flake .#NixOracle --target-host root@tadix.dev` (ou via `./deploy-oracle.sh`)
-- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@204.216.173.108`
+- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@<ip>`
+  (IP efemero; confirme no console da OCI ou via API antes de usar)
 
 ### Notas sobre o `NixOracle2`
 
-- Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre a imagem Ubuntu 22.04 da OCI.
-- Shape `VM.Standard.E2.1.Micro`: 1 OCPU e 1 GB de RAM. Alem do `zramSwap`, existe um `/swapfile` de 2 GB em disco; sem ele um `nixos-rebuild` no proprio host tende a morrer por OOM.
-- `boot.kernelParams` habilita `console=ttyS0`. Nao remova: sem isso o console serial da OCI fica mudo e uma falha de boot vira caixa preta.
-- Ao reiniciar apos mexer no bootloader, use reboot limpo. A ESP e vfat e nao tem journal; `systemctl reboot -f` logo apos `switch-to-configuration boot` ja deixou o host sem bootar.
-- A terceira chave em `sshAuthorizedKeys` e o par de API da OCI reaproveitado no bootstrap; trocar por chave SSH dedicada e remover.
+Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre imagem Ubuntu
+da OCI. **A OCI nao e um provider oficialmente suportado pelo nixos-infect** —
+tudo abaixo foi aprendido na marra, em 2026-08-04, depois de duas instalacoes
+que terminaram com disco perfeito e maquina que nao bootava.
+
+- Shape `VM.Standard.E2.1.Micro`: 1 OCPU e 1 GB de RAM.
+- Durante o `nixos-infect` e obrigatorio ter swap em disco (`/swapfile` 2 GB);
+  com 1 GB de RAM o build morre por OOM. **Nao** referencie esse swapfile em
+  `swapDevices`: o lustrate do primeiro boot move `/swapfile` para `/old-root`,
+  e a unidade de swap passa a apontar para um caminho inexistente.
+- A terceira chave em `sshAuthorizedKeys` e o par de API da OCI reaproveitado no
+  bootstrap; trocar por chave SSH dedicada e remover.
+
+#### A armadilha do `/boot` (causa raiz das falhas)
+
+**Este e o item mais importante deste bloco.**
+
+As imagens Ubuntu da OCI mantem `/boot` em uma **particao separada** (XBOOTLDR,
+~913 MB, `LABEL=BOOT`, tipo GPT `BC13C2FF-59E6-4262-A352-B275FD6F7172`). O
+`nixos-infect` roda `switch-to-configuration boot` com essa particao montada,
+entao `grub.cfg`, os modulos do GRUB e os kernels sao gravados **la**.
+
+Mas o `hardware-configuration.nix` que ele gera declara apenas `/` e
+`/boot/efi` — **nunca `/boot`**.
+
+Resultado depois do reboot:
+
+- `/boot` vira um diretorio vazio na particao raiz;
+- o core image do GRUB procura `/boot/grub` na particao 1 e nao acha;
+- a maquina para num prompt de rescue **silencioso**.
+
+O disco fica *perfeito* — `/nix/store` populado, `grub.cfg` correto, UUID
+batendo, kernel e initrd presentes, `BOOTX64.EFI` byte-a-byte identico ao de um
+host que funciona. Isso torna o diagnostico enganoso: tudo que se inspeciona
+parece certo.
+
+**Sintoma que confirma:** monte o disco em outra instancia e verifique
+`/etc/NIXOS_LUSTRATE`. Se ainda existir e nao houver `/old-root`, o stage-2 do
+NixOS **nunca rodou** — o problema e bootloader, nao rede nem sshd.
+
+**Correcao:** declarar `/boot` explicitamente (ja feito em
+`hosts/NixOracle2/hardware-configuration.nix`). Nao remova aquele bloco.
+
+Relatos do mesmo problema na OCI:
+- <https://discourse.nixos.org/t/nixos-infect-boot-part-just-100mb/63006>
+- <https://github.com/elitak/nixos-infect/issues/94>
+
+#### Diagnostico: o que NAO funciona na OCI
+
+- **O console serial da OCI nao serve para diagnosticar boot nestas shapes.**
+  `CaptureConsoleHistory` retorna `404` no endpoint `/content` e a conexao
+  serial interativa entrega 0 bytes — **inclusive para um host saudavel e
+  respondendo SSH** (verificado contra o `NixOracle` em producao). Silencio no
+  console **nao e evidencia de nada**. Nao tire conclusoes dele.
+- Adicionar `console=ttyS0` em `boot.kernelParams` **nao resolve** isso. O
+  `NixOracle`, que funciona, nao tem esse parametro.
+- Consequencia pratica: o unico diagnostico confiavel e **desanexar o boot
+  volume e montar em outra instancia** (runbook abaixo).
+
+#### Runbook: resgatar um boot volume que nao boota
+
+1. `STOP` na instancia quebrada; esperar `STOPPED`.
+2. `DELETE /20160918/bootVolumeAttachments/{id}` e esperar `DETACHED`.
+3. `POST /20160918/volumeAttachments` anexando o boot volume a **outra**
+   instancia como `paravirtualized`.
+4. Montar somente-leitura (`mount -o ro /dev/sdb1 /mnt/...`) e inspecionar.
+5. Ao terminar: `umount`, **`echo 1 > /sys/block/sdb/device/delete`**, desanexar.
+
+O passo 5 nao e opcional: sem remover o dispositivo SCSI do kernel do host de
+resgate, a OCI deixa o attachment preso em `DETACHING` indefinidamente.
+
+#### Armadilhas do control plane da OCI
+
+Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
+
+- Um `volumeAttachment` pode ficar em `DETACHING` por horas e **sobreviver a um
+  reboot** do host. Bloqueia delete do volume e novos attachments.
+- O `lifecycleState` da instancia pode reportar `STOPPING` por dezenas de
+  minutos enquanto o guest esta de pe, servindo trafego, com uptime crescente.
+  Confirme por SSH antes de acreditar na API.
+- `action=SOFTRESET` pode retornar `200` e so ter efeito **muito depois**. Nao
+  conclua que falhou e emita um segundo comando por cima — foi assim que o
+  `NixOracle` quase foi derrubado sem necessidade.
+- Um **clone de boot volume nao pode ser anexado a uma instancia arbitraria**
+  (`"It can only be attached to its parent instance"`). Para usar um clone e
+  preciso **lancar uma instancia nova a partir dele**
+  (`sourceDetails.sourceType = "bootVolume"`).
+- Existe `bootVolumeQuota` no Always Free alem do limite de 200 GB: acumular
+  volumes orfaos (terminar instancia com `preserveBootVolume=true`) esgota a
+  cota e impede novos lancamentos.
+
+#### Assinatura da API da OCI (se escrever ferramenta propria)
+
+- Um `POST` com corpo vazio (endpoints `?action=STOP|START`) **ainda precisa**
+  de `x-content-sha256`, `content-length: 0` e `content-type` presentes **e
+  assinados**. Assinar como GET e enviar POST retorna `401`.
+- O console serial exige `-o HostKeyAlgorithms=+ssh-rsa` e
+  `-o PubkeyAcceptedAlgorithms=+ssh-rsa`; o OpenSSH moderno recusa por padrao.
+
+#### Pre-requisitos do `nixos-infect` numa instancia recem-criada
+
+- Espere o `cloud-init` terminar. Numa instancia com poucos minutos as listas do
+  apt ainda nao existem, `apt-get install bzip2` falha e o `checkEnv` aborta com
+  `ERROR: Missing bzcat`.
+- Redirecionamento com `sudo` precisa ficar **dentro** do `sudo`:
+  `sudo sh -c 'cmd > /var/log/x.log 2>&1'`. Escrito por fora, o shell chamador
+  (usuario `ubuntu`) nao tem permissao em `/var/log` e o comando morre na hora.
 
 ### Validacao mais fiel do sistema
 
