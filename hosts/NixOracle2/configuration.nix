@@ -32,15 +32,6 @@ in {
 
   boot.tmp.cleanOnBoot = true;
 
-  # Console serial da OCI. Sem isto o boot e completamente silencioso e uma
-  # falha de boot fica impossivel de diagnosticar pelo console da OCI.
-  boot.kernelParams = [ "console=tty1" "console=ttyS0,115200n8" ];
-  boot.loader.grub.extraConfig = ''
-    serial --unit=0 --speed=115200
-    terminal_input serial console
-    terminal_output serial console
-  '';
-
   networking = {
     hostName = "NixOracle2";
     domain = "";
@@ -50,9 +41,10 @@ in {
 
   time.timeZone = "America/Sao_Paulo";
 
-  # 1 GB de RAM nesta shape; o swap em disco e o que segura rebuilds do Nix.
+  # 1 GB de RAM nesta shape; zram basta enquanto os rebuilds forem feitos
+  # remotamente. O /swapfile de 2 GB do bootstrap foi para /old-root pelo
+  # lustrate; nao referencie ele em swapDevices.
   zramSwap.enable = true;
-  swapDevices = [{ device = "/swapfile"; }];
 
   services.openssh = {
     enable = true;
@@ -72,5 +64,8 @@ in {
     options = "--delete-older-than 30d";
   };
 
-  system.stateVersion = "26.05";
+  # O infect subiu esta maquina no canal 25.11 (unico canal comprovadamente
+  # funcional nesta shape - ver AGENTS.md). system.stateVersion segue esse
+  # canal ate um upgrade explicito.
+  system.stateVersion = "25.11";
 }

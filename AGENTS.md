@@ -54,7 +54,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 |------|----------|------------|-----------|
 | `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
 | `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
-| `NixOracle2` (VPS Always Free 2) | — | IP efemero, muda a cada recriacao | — |
+| `NixOracle2` (VPS Always Free 2) | — | `144.33.9.33` (efemero) | — |
 | `Pixel 7a` | — | — | `100.64.0.2` |
 | `win11` (VM GNOME Boxes) | DHCP em `192.168.122.0/24` | — | `100.90.206.104` |
 
@@ -801,69 +801,62 @@ Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env`
 
 - `sudo nixos-rebuild switch --flake .#Nixos`
 - NixOracle: `nixos-rebuild switch --flake .#NixOracle --target-host root@tadix.dev` (ou via `./deploy-oracle.sh`)
-- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@<ip>`
-  (IP efemero; confirme no console da OCI ou via API antes de usar)
+- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@144.33.9.33`
+  (IP e efemero — muda a cada recriacao; confirme no painel da OCI)
 
 ### Notas sobre o `NixOracle2`
 
-Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre imagem Ubuntu
-da OCI. **A OCI nao e um provider oficialmente suportado pelo nixos-infect** —
-tudo abaixo foi aprendido na marra, em 2026-08-04, depois de duas instalacoes
-que terminaram com disco perfeito e maquina que nao bootava.
+Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre imagem
+Ubuntu 24.04 da OCI (`Canonical-Ubuntu-24.04-2025.09.22-0`, mesma do
+`NixOracle`). **A OCI nao esta na lista oficial de providers testados do
+nixos-infect** — as notas abaixo foram apuradas em 2026-08-04/05 depois de
+tres tentativas fracassadas.
 
 - Shape `VM.Standard.E2.1.Micro`: 1 OCPU e 1 GB de RAM.
 - Durante o `nixos-infect` e obrigatorio ter swap em disco (`/swapfile` 2 GB);
   com 1 GB de RAM o build morre por OOM. **Nao** referencie esse swapfile em
-  `swapDevices`: o lustrate do primeiro boot move `/swapfile` para `/old-root`,
-  e a unidade de swap passa a apontar para um caminho inexistente.
-- A terceira chave em `sshAuthorizedKeys` e o par de API da OCI reaproveitado no
-  bootstrap; trocar por chave SSH dedicada e remover.
+  `swapDevices`: o lustrate do primeiro boot move `/swapfile` para `/old-root`
+  e a unidade de swap passaria a apontar para um caminho inexistente.
+- A terceira chave em `sshAuthorizedKeys` (se ainda estiver la) e o par de API
+  da OCI reaproveitado no bootstrap; trocar por chave SSH dedicada e remover.
 
-#### A armadilha do `/boot` (causa raiz das falhas)
+#### Passe explicitamente `NIX_CHANNEL=nixos-25.11` (causa raiz de 2026-08-04)
 
 **Este e o item mais importante deste bloco.**
 
-As imagens Ubuntu da OCI mantem `/boot` em uma **particao separada** (XBOOTLDR,
-~913 MB, `LABEL=BOOT`, tipo GPT `BC13C2FF-59E6-4262-A352-B275FD6F7172`). O
-`nixos-infect` roda `switch-to-configuration boot` com essa particao montada,
-entao `grub.cfg`, os modulos do GRUB e os kernels sao gravados **la**.
+O `NixOracle` foi infectado com `nixos-25.11` (default do script naquela data,
+verificavel em `/root/.nix-channels` no host: `channels.nixos.org/nixos-25.11`).
+Foi assim que ele bootou.
 
-Mas o `hardware-configuration.nix` que ele gera declara apenas `/` e
-`/boot/efi` — **nunca `/boot`**.
+Em 2026-08-04 tres tentativas de infect passando `NIX_CHANNEL=nixos-26.05`
+produziram **discos perfeitos que nunca bootaram**: `/nix/store` populado,
+`grub.cfg` correto, `BOOTX64.EFI` valido, mas silencio total no boot. O que
+muda entre canais e o modulo do bootloader do NixOS: o 26.05 grava
+`grub.cfg` externo em `/kernels/...-bzImage` numa particao de boot separada da
+Ubuntu, e essa combinacao especifica nao boota nesta shape. O 25.11 embute o
+config no proprio `BOOTX64.EFI` (nao cria `grub.cfg` externo) e simplesmente
+funciona.
 
-Resultado depois do reboot:
+**Regra:** ao rodar `nixos-infect` numa Ubuntu OCI, passe
+`NIX_CHANNEL=nixos-25.11` explicitamente. Nao aceite o default evolutivo do
+script. Depois do infect, um `nixos-rebuild switch --upgrade` local pode subir
+para versoes mais novas sem problema (foi o que aconteceu no `NixOracle`, que
+hoje esta em 26.05).
 
-- `/boot` vira um diretorio vazio na particao raiz;
-- o core image do GRUB procura `/boot/grub` na particao 1 e nao acha;
-- a maquina para num prompt de rescue **silencioso**.
+**Sintoma que confirma que voce caiu na armadilha:** desanexar o boot volume e
+montar em outra instancia; se `/etc/NIXOS_LUSTRATE` ainda existir e nao houver
+`/old-root`, o stage-2 do NixOS nunca rodou. E boot fail antes do kernel, nao
+problema de rede nem sshd.
 
-O disco fica *perfeito* — `/nix/store` populado, `grub.cfg` correto, UUID
-batendo, kernel e initrd presentes, `BOOTX64.EFI` byte-a-byte identico ao de um
-host que funciona. Isso torna o diagnostico enganoso: tudo que se inspeciona
-parece certo.
+#### Diagnostico: o console serial da OCI nao serve
 
-**Sintoma que confirma:** monte o disco em outra instancia e verifique
-`/etc/NIXOS_LUSTRATE`. Se ainda existir e nao houver `/old-root`, o stage-2 do
-NixOS **nunca rodou** — o problema e bootloader, nao rede nem sshd.
-
-**Correcao:** declarar `/boot` explicitamente (ja feito em
-`hosts/NixOracle2/hardware-configuration.nix`). Nao remova aquele bloco.
-
-Relatos do mesmo problema na OCI:
-- <https://discourse.nixos.org/t/nixos-infect-boot-part-just-100mb/63006>
-- <https://github.com/elitak/nixos-infect/issues/94>
-
-#### Diagnostico: o que NAO funciona na OCI
-
-- **O console serial da OCI nao serve para diagnosticar boot nestas shapes.**
-  `CaptureConsoleHistory` retorna `404` no endpoint `/content` e a conexao
-  serial interativa entrega 0 bytes — **inclusive para um host saudavel e
-  respondendo SSH** (verificado contra o `NixOracle` em producao). Silencio no
-  console **nao e evidencia de nada**. Nao tire conclusoes dele.
-- Adicionar `console=ttyS0` em `boot.kernelParams` **nao resolve** isso. O
+- `CaptureConsoleHistory` retorna `404` em `/content` e a conexao serial
+  interativa entrega **0 bytes**, mesmo para o `NixOracle` saudavel servindo
+  trafego. Silencio no console **nao e evidencia de nada**.
+- Adicionar `console=ttyS0` em `boot.kernelParams` nao resolve isso. O
   `NixOracle`, que funciona, nao tem esse parametro.
-- Consequencia pratica: o unico diagnostico confiavel e **desanexar o boot
-  volume e montar em outra instancia** (runbook abaixo).
+- Diagnostico confiavel = desanexar boot volume + montar em outra instancia
+  (runbook abaixo).
 
 #### Runbook: resgatar um boot volume que nao boota
 
