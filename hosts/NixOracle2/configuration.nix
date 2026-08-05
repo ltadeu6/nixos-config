@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 let
   sshAuthorizedKeys = [
     ''
@@ -18,14 +18,61 @@ in {
     ./hardware-configuration.nix
   ];
 
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [ "claude-code" ];
+
   environment.systemPackages = with pkgs; [
+    acl
+    attr
+    bashInteractive
+    binutils
+    bubblewrap
+    bzip2
+    coreutils
     curl
+    diffutils
+    dnsutils
+    dos2unix
+    fd
+    file
+    findutils
+    gawk
     git
+    gnugrep
+    gnused
+    gnutar
+    gzip
     htop
+    iproute2
+    iputils
+    jq
+    less
+    lsof
+    man-db
+    man-pages
+    nano
+    nettools
     neovim
+    openssh
+    openssl
+    procps
+    psmisc
     ripgrep
+    rsync
+    strace
+    tcpdump
     tmux
+    tree
+    unzip
+    vim
     wget
+    which
+    xz
+    zip
+    zstd
+
+    unstable.claude-code
+    unstable.codex
   ];
 
   services.logrotate.checkConfig = false;
