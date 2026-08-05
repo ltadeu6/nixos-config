@@ -95,10 +95,23 @@ in {
 
   services.openssh = {
     enable = true;
-    settings.PermitRootLogin = "prohibit-password";
+    settings = {
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "prohibit-password";
+    };
   };
 
+  programs.fish.enable = true;
+
   users.users.root.openssh.authorizedKeys.keys = sshAuthorizedKeys;
+  users.users.ltadeu6 = {
+    isNormalUser = true;
+    description = "Lucas Tadeu";
+    extraGroups = [ "wheel" ];
+    shell = pkgs.fish;
+    openssh.authorizedKeys.keys = sshAuthorizedKeys;
+  };
 
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
