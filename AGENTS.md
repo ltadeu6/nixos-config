@@ -786,6 +786,13 @@ Cuidados:
 **Forgejo API:** base URL `https://git.tadix.dev/api/v1`. Token disponivel em `$FORGEJO_API_TOKEN` no ambiente de shell.
 Exemplo: `curl -H "Authorization: token $FORGEJO_API_TOKEN" https://git.tadix.dev/api/v1/user`
 
+**Git via SSH:** o usuario e `forgejo`, nao `git`. Esta instancia usa
+`RUN_USER = forgejo` no `app.ini` e o usuario `git` **nao existe** no
+sistema — tentar `git@git.tadix.dev:...` retorna `Permission denied
+(publickey)` porque o sshd rejeita o usuario antes de olhar a chave. URL
+correta: `forgejo@git.tadix.dev:<owner>/<repo>.git`. Se algum `~/.ssh/config`
+tem `Host git.tadix.dev User git`, corrigir para `User forgejo`.
+
 **Restic backup diario** → Oracle Object Storage (`bucket-20260526-1825`, regiao `sa-vinhedo-1`).
 Itens salvos: dados do Nextcloud, repositorios do Forgejo, notebooks, dump PostgreSQL do Nextcloud.
 Retencao: 7 diarios, 4 semanais, 3 mensais.
