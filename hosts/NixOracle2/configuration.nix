@@ -79,11 +79,18 @@ in {
 
   boot.tmp.cleanOnBoot = true;
 
+  # Acesso as coisas servidas nesta box (previews, painel) fica no tailnet, nao
+  # na internet: evita mexer na security list da OCI e nao expoe porta publica.
+  services.tailscale.enable = true;
+
   networking = {
     hostName = "NixOracle2";
     domain = "";
     useDHCP = true;
+    # A interface publica continua so com SSH. Portas de servico sao alcancaveis
+    # apenas via tailscale0, que e confiavel por inteiro.
     firewall.allowedTCPPorts = [ 22 ];
+    firewall.trustedInterfaces = [ "tailscale0" ];
   };
 
   time.timeZone = "America/Sao_Paulo";
