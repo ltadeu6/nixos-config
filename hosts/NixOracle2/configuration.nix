@@ -33,10 +33,12 @@ in {
     diffutils
     dnsutils
     dos2unix
+    duckdb
     fd
     file
     findutils
     gawk
+    gh
     git
     gnugrep
     gnused
@@ -53,12 +55,19 @@ in {
     nano
     nettools
     neovim
+    # Requisito de runtime do plugin openai-codex: os hooks e o companion sao
+    # .mjs. Estava instalado so imperativamente em ~/.nix-profile; se sumir de
+    # la, os hooks falham como "node: command not found".
+    nodejs
     openssh
     openssl
+    poppler_utils
     procps
     psmisc
+    python3
     ripgrep
     rsync
+    sqlite
     strace
     tcpdump
     tmux
