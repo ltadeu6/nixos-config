@@ -337,7 +337,7 @@ in
     unzip
     unstable.codex
     opencodeWithLibstdcxx
-    claude-code
+    unstable.claude-code
     zip
     file-roller
     clang-tools
