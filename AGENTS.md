@@ -8,7 +8,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 
 - Este repo contem a configuracao pessoal de NixOS e Home Manager da maquina `Nixos`.
 - O setup e especifico para o usuario `ltadeu6` e para os hosts versionados neste repo; nao trate este repo como template generico sem adaptar usuario, host, mounts, rede e segredos.
-- O flake principal gera `nixosConfigurations.Nixos` e `nixosConfigurations.NixOracle`.
+- O flake principal gera `nixosConfigurations.Nixos`, `nixosConfigurations.NixOracle` e `nixosConfigurations.NixOracle2`.
 - O Home Manager esta embutido no modulo NixOS; nao existe fluxo separado de `home-manager switch`.
 
 ## Regras gerais para agentes
@@ -29,6 +29,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/Nixos/hardware-configuration.nix`: hardware, filesystem e driver de video; gerado pelo NixOS.
 - `hosts/NixOracle/configuration.nix`: modulo minimo do VPS `NixOracle`.
 - `hosts/NixOracle/hardware-configuration.nix`: placeholder para o hardware do VPS; substitua pelo gerado no host.
+- `hosts/NixOracle2/configuration.nix`: modulo minimo do segundo VPS Always Free `NixOracle2`; hoje so SSH, sem servicos.
+- `hosts/NixOracle2/hardware-configuration.nix`: hardware do host. Gerado pelo `nixos-infect` e **corrigido a mao** — o bloco que declara `/boot` e o que faz a maquina bootar; ver "A armadilha do /boot" no fim deste arquivo antes de editar.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
@@ -52,6 +54,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 |------|----------|------------|-----------|
 | `Nixos` (maquina local) | `192.168.1.150` | — | `100.64.0.0` |
 | `NixOracle` (VPS) | — | `204.216.130.111` | `100.64.0.1` |
+| `NixOracle2` (VPS Always Free 2) | — | `144.33.9.33` (efemero) | — |
 | `Pixel 7a` | — | — | `100.64.0.2` |
 | `win11` (VM GNOME Boxes) | DHCP em `192.168.122.0/24` | — | `100.90.206.104` |
 
@@ -783,6 +786,13 @@ Cuidados:
 **Forgejo API:** base URL `https://git.tadix.dev/api/v1`. Token disponivel em `$FORGEJO_API_TOKEN` no ambiente de shell.
 Exemplo: `curl -H "Authorization: token $FORGEJO_API_TOKEN" https://git.tadix.dev/api/v1/user`
 
+**Git via SSH:** o usuario e `forgejo`, nao `git`. Esta instancia usa
+`RUN_USER = forgejo` no `app.ini` e o usuario `git` **nao existe** no
+sistema — tentar `git@git.tadix.dev:...` retorna `Permission denied
+(publickey)` porque o sshd rejeita o usuario antes de olhar a chave. URL
+correta: `forgejo@git.tadix.dev:<owner>/<repo>.git`. Se algum `~/.ssh/config`
+tem `Host git.tadix.dev User git`, corrigir para `User forgejo`.
+
 **Restic backup diario** → Oracle Object Storage (`bucket-20260526-1825`, regiao `sa-vinhedo-1`).
 Itens salvos: dados do Nextcloud, repositorios do Forgejo, notebooks, dump PostgreSQL do Nextcloud.
 Retencao: 7 diarios, 4 semanais, 3 mensais.
@@ -798,6 +808,153 @@ Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env`
 
 - `sudo nixos-rebuild switch --flake .#Nixos`
 - NixOracle: `nixos-rebuild switch --flake .#NixOracle --target-host root@tadix.dev` (ou via `./deploy-oracle.sh`)
+- NixOracle2: `nixos-rebuild switch --flake .#NixOracle2 --target-host root@144.33.9.33`
+  (IP e efemero — muda a cada recriacao; confirme no painel da OCI)
+
+### Notas sobre o `NixOracle2`
+
+Host criado por `nixos-infect` (`github:elitak/nixos-infect`) sobre imagem
+Ubuntu 24.04 da OCI (`Canonical-Ubuntu-24.04-2025.09.22-0`, mesma do
+`NixOracle`). **A OCI nao esta na lista oficial de providers testados do
+nixos-infect** — as notas abaixo foram apuradas em 2026-08-04/05 depois de
+tres tentativas fracassadas.
+
+- Shape `VM.Standard.E2.1.Micro`: 1 OCPU e 1 GB de RAM.
+- Durante o `nixos-infect` e obrigatorio ter swap em disco (`/swapfile` 2 GB);
+  com 1 GB de RAM o build morre por OOM. **Nao** referencie esse swapfile em
+  `swapDevices`: o lustrate do primeiro boot move `/swapfile` para `/old-root`
+  e a unidade de swap passaria a apontar para um caminho inexistente.
+- A terceira chave em `sshAuthorizedKeys` (se ainda estiver la) e o par de API
+  da OCI reaproveitado no bootstrap; trocar por chave SSH dedicada e remover.
+
+#### Passe explicitamente `NIX_CHANNEL=nixos-25.11` (causa raiz de 2026-08-04)
+
+**Este e o item mais importante deste bloco.**
+
+O `NixOracle` foi infectado com `nixos-25.11` (default do script naquela data,
+verificavel em `/root/.nix-channels` no host: `channels.nixos.org/nixos-25.11`).
+Foi assim que ele bootou.
+
+Em 2026-08-04 tres tentativas de infect passando `NIX_CHANNEL=nixos-26.05`
+produziram **discos perfeitos que nunca bootaram**: `/nix/store` populado,
+`grub.cfg` correto, `BOOTX64.EFI` valido, mas silencio total no boot. O que
+muda entre canais e o modulo do bootloader do NixOS: o 26.05 grava
+`grub.cfg` externo em `/kernels/...-bzImage` numa particao de boot separada da
+Ubuntu, e essa combinacao especifica nao boota nesta shape. O 25.11 embute o
+config no proprio `BOOTX64.EFI` (nao cria `grub.cfg` externo) e simplesmente
+funciona.
+
+**Regra:** ao rodar `nixos-infect` numa Ubuntu OCI, passe
+`NIX_CHANNEL=nixos-25.11` explicitamente. Nao aceite o default evolutivo do
+script. Depois do infect, um `nixos-rebuild switch --upgrade` local pode subir
+para versoes mais novas sem problema (foi o que aconteceu no `NixOracle`, que
+hoje esta em 26.05).
+
+**Sintoma que confirma que voce caiu na armadilha:** desanexar o boot volume e
+montar em outra instancia; se `/etc/NIXOS_LUSTRATE` ainda existir e nao houver
+`/old-root`, o stage-2 do NixOS nunca rodou. E boot fail antes do kernel, nao
+problema de rede nem sshd.
+
+#### Diagnostico: o console serial da OCI nao serve
+
+- `CaptureConsoleHistory` retorna `404` em `/content` e a conexao serial
+  interativa entrega **0 bytes**, mesmo para o `NixOracle` saudavel servindo
+  trafego. Silencio no console **nao e evidencia de nada**.
+- Adicionar `console=ttyS0` em `boot.kernelParams` nao resolve isso. O
+  `NixOracle`, que funciona, nao tem esse parametro.
+- Diagnostico confiavel = desanexar boot volume + montar em outra instancia
+  (runbook abaixo).
+
+#### Runbook: resgatar um boot volume que nao boota
+
+1. `STOP` na instancia quebrada; esperar `STOPPED`.
+2. `DELETE /20160918/bootVolumeAttachments/{id}` e esperar `DETACHED`.
+3. `POST /20160918/volumeAttachments` anexando o boot volume a **outra**
+   instancia como `paravirtualized`.
+4. Montar somente-leitura (`mount -o ro /dev/sdb1 /mnt/...`) e inspecionar.
+5. Ao terminar, **nesta ordem**: `umount` →
+   `echo 1 > /sys/block/sdb/device/delete` → só então pedir o detach na API.
+
+A ordem do passo 5 nao e opcional. Se o host de resgate for uma maquina
+infectada (sem Oracle Cloud Agent — ver secao acima), pedir o detach antes de
+soltar o dispositivo no kernel deixa o attachment preso em `DETACHING` para
+sempre; fazer o `device/delete` depois **nao** conserta.
+
+#### Por que o control plane trava: nao existe Oracle Cloud Agent
+
+**Causa raiz de praticamente todos os travamentos de API nestes hosts.**
+
+As imagens Ubuntu da OCI trazem o **Oracle Cloud Agent** (snap
+`oracle-cloud-agent`). O `nixos-infect` apaga isso no lustrate, e **nao existe
+pacote equivalente no nixpkgs**. Confirmado no `NixOracle`: nenhuma unit,
+nenhum binario, nenhum processo Oracle; `qemu-guest-agent` tambem ausente.
+
+A OCI usa esse agente para receber confirmacao do guest em operacoes que
+dependem de cooperacao de dentro da maquina:
+
+| Operacao | O que a OCI espera | Sem agente |
+|----------|--------------------|------------|
+| `STOP` / `SOFTRESET` | agente confirma o shutdown | fica em `STOPPING` indefinidamente |
+| detach de volume | agente confirma que o guest soltou o disco | fica em `DETACHING` indefinidamente |
+
+**A maquina funciona normalmente.** O que quebra sao as operacoes de control
+plane. Um host infectado serve trafego feliz enquanto a API mente sobre o
+estado dele.
+
+**Consequencias praticas:**
+
+- **A ordem importa.** Antes de pedir detach pela API, solte o dispositivo
+  dentro do guest: `umount` e depois
+  `echo 1 > /sys/block/sdX/device/delete`. Fazer isso *depois* do detach nao
+  desatola — em 2026-08-04 um attachment ficou preso em `DETACHING` por mais de
+  3 h e sobreviveu a um reboot completo.
+- Nao confie em `lifecycleState` para hosts infectados. Confirme por SSH.
+- Evite `STOP`/`SOFTRESET` pela API nestes hosts. Se precisar parar, desligue
+  por dentro (`poweroff`) e deixe a OCI observar a maquina sumir.
+- Os guias de NixOS na OCI que existem por ai nao mencionam isto; assuma que
+  qualquer host infectado tera esse comportamento.
+
+Referencias:
+- <https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/manage-plugins.htm>
+- <https://discourse.nixos.org/t/looking-for-instructions-on-how-to-build-nixos-for-oci-cloud-images/40217>
+- <https://mdleom.com/blog/2021/03/09/nixos-oracle/>
+
+#### Armadilhas do control plane da OCI
+
+Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
+
+- Um `volumeAttachment` pode ficar em `DETACHING` por horas e **sobreviver a um
+  reboot** do host. Bloqueia delete do volume e novos attachments.
+- O `lifecycleState` da instancia pode reportar `STOPPING` por dezenas de
+  minutos enquanto o guest esta de pe, servindo trafego, com uptime crescente.
+  Confirme por SSH antes de acreditar na API.
+- `action=SOFTRESET` pode retornar `200` e so ter efeito **muito depois**. Nao
+  conclua que falhou e emita um segundo comando por cima — foi assim que o
+  `NixOracle` quase foi derrubado sem necessidade.
+- Um **clone de boot volume nao pode ser anexado a uma instancia arbitraria**
+  (`"It can only be attached to its parent instance"`). Para usar um clone e
+  preciso **lancar uma instancia nova a partir dele**
+  (`sourceDetails.sourceType = "bootVolume"`).
+- Existe `bootVolumeQuota` no Always Free alem do limite de 200 GB: acumular
+  volumes orfaos (terminar instancia com `preserveBootVolume=true`) esgota a
+  cota e impede novos lancamentos.
+
+#### Assinatura da API da OCI (se escrever ferramenta propria)
+
+- Um `POST` com corpo vazio (endpoints `?action=STOP|START`) **ainda precisa**
+  de `x-content-sha256`, `content-length: 0` e `content-type` presentes **e
+  assinados**. Assinar como GET e enviar POST retorna `401`.
+- O console serial exige `-o HostKeyAlgorithms=+ssh-rsa` e
+  `-o PubkeyAcceptedAlgorithms=+ssh-rsa`; o OpenSSH moderno recusa por padrao.
+
+#### Pre-requisitos do `nixos-infect` numa instancia recem-criada
+
+- Espere o `cloud-init` terminar. Numa instancia com poucos minutos as listas do
+  apt ainda nao existem, `apt-get install bzip2` falha e o `checkEnv` aborta com
+  `ERROR: Missing bzcat`.
+- Redirecionamento com `sudo` precisa ficar **dentro** do `sudo`:
+  `sudo sh -c 'cmd > /var/log/x.log 2>&1'`. Escrito por fora, o shell chamador
+  (usuario `ubuntu`) nao tem permissao em `/var/log` e o comando morre na hora.
 
 ### Validacao mais fiel do sistema
 

@@ -79,5 +79,22 @@
           }
         ];
       };
+
+      nixosConfigurations.NixOracle2 = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./hosts/NixOracle2/configuration.nix
+          {
+            nixpkgs.overlays = [
+              (final: prev: {
+                unstable = import nixpkgs-unstable {
+                  inherit system;
+                  config = prev.config;
+                };
+              })
+            ];
+          }
+        ];
+      };
     };
 }
