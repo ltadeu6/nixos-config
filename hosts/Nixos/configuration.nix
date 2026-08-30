@@ -1035,6 +1035,18 @@ in {
   services.pulseaudio.enable = false;
   hardware.bluetooth.enable = true;
   hardware.uinput.enable = true;
+
+  # O "ASRock LED Controller" (26ce:01a2, placa B550M Pro4) publica um HID
+  # report descriptor que declara eixos de joystick que nao existem. O kernel
+  # entao cria /dev/input/js0 com os 12 eixos cravados em -32767 (batente), e o
+  # SDL entrega isso aos jogos como um gamepad legitimo: no TF2 os eixos sao
+  # mapeados para pitch/yaw e prendem a mira num angulo fixo.
+  # Limpar as tags faz SDL/Steam/AntiMicroX ignorarem o dispositivo. O nó js0 do
+  # kernel continua existindo e o hidraw segue disponivel, entao o controle de
+  # RGB (OpenRGB) nao e afetado.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="input", ATTRS{idVendor}=="26ce", ATTRS{idProduct}=="01a2", ENV{ID_INPUT_JOYSTICK}="", ENV{ID_INPUT}=""
+  '';
   security.rtkit.enable = true;
 
   environment.etc."antimicrox/controller-mouse.amgp".text = ''
