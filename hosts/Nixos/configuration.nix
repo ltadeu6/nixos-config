@@ -479,6 +479,10 @@ in {
     steam = {
       enable = true;
       gamescopeSession.enable = true;
+      # vkBasalt: camada Vulkan de pos-processamento (ReShade do Linux). Entra no
+      # ambiente FHS da Steam; e ativada por jogo com ENABLE_VKBASALT=1 nas
+      # opcoes de inicializacao, entao nao afeta nada que nao peca por ela.
+      extraPackages = [ pkgs.vkbasalt ];
     };
     starship.enable = true;
     java.enable = true;

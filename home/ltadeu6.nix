@@ -381,6 +381,17 @@ in
   ];
 
   home.file = {
+    # vkBasalt so age em jogos iniciados com ENABLE_VKBASALT=1. CAS (Contrast
+    # Adaptive Sharpening) realca detalhe de textura sem o halo dos sharpeners
+    # comuns -- o maior ganho de nitidez disponivel num engine de 2007 esticado
+    # em 3440x1440. toggleKey permite comparar ligado/desligado em jogo.
+    ".config/vkBasalt/vkBasalt.conf".text = ''
+      effects = cas
+      cas:sharpness = 0.40
+      toggleKey = Home
+      enableOnLaunch = True
+      depthCapture = off
+    '';
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
     ".config/hypr/hyprpaper.conf".text = ''
       # hyprpaper 0.8 replaced the old `preload =` / `wallpaper = ,path` syntax
