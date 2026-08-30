@@ -1428,6 +1428,13 @@ in {
       run_as_user /run/current-system/sw/bin/nix flake update --commit-lock-file --flake "$repo_dir"
       /run/current-system/sw/bin/nixos-rebuild switch --flake "path:$repo_dir#Nixos"
 
+      # Publica o commit do lock apenas depois do rebuild dar certo, para nunca
+      # empurrar um flake.lock que nao constroi. O remote "origin" tem dois push
+      # URLs (Forgejo + GitHub), entao isso atualiza os dois. BatchMode faz o ssh
+      # falhar na hora em vez de pendurar esperando um prompt.
+      run_as_user env GIT_SSH_COMMAND="/run/current-system/sw/bin/ssh -o BatchMode=yes" \
+        git -C "$repo_dir" push origin main
+
       if [ -n "$backup" ] && [ -f "$backup" ]; then
         rm -f "$backup"
       fi
