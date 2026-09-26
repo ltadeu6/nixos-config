@@ -33,13 +33,14 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/NixOracle2/hardware-configuration.nix`: hardware do host. Gerado pelo `nixos-infect` e **corrigido a mao** — o bloco que declara `/boot` e o que faz a maquina bootar; ver "A armadilha do /boot" no fim deste arquivo antes de editar.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
+- `home/themes.nix`: paletas de cor e o theme switcher de runtime; importado por `home/ltadeu6.nix`.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
 - `configs/home-assistant/`: scripts auxiliares consumidos por servicos do host para alimentar o Home Assistant.
   - `configs/home-assistant/codex_status.py`: exportador do status web do Codex/ChatGPT para o Home Assistant, com fallback para logs locais.
   - `configs/home-assistant/ui-lovelace.yaml`: dashboard principal do Home Assistant em YAML.
-- `configs/wofi/`: configuracao e tema do launcher Wofi.
+- `configs/wofi/`: configuracao e tema do launcher Wofi; o `style.css.in` e template de tema, nao CSS final.
 - `hosts/Nixos/libvirt/`: XMLs versionados de VMs locais usadas no host `Nixos`.
 - `secrets/secrets.nix`: regras do agenix.
 - `secrets/*.age`: segredos criptografados.
@@ -124,7 +125,6 @@ SSH para a VM Windows: `ssh win11` via alias gerado pelo Home Manager, equivalen
 - Fontes de verdade:
   - `configs/waybar/config`
   - `configs/waybar/style.css`
-  - `configs/waybar/dracula.css`
   - `configs/waybar/air_control.py`
   - `configs/waybar/launch.sh`
   - `configs/waybar/switch_sink.sh`
@@ -144,7 +144,7 @@ SSH para a VM Windows: `ssh win11` via alias gerado pelo Home Manager, equivalen
 
 - Fontes de verdade:
   - `configs/wofi/config`
-  - `configs/wofi/style.css`
+  - `configs/wofi/style.css.in` (template; `@chave@` vem da paleta em `home/themes.nix`)
   - `configs/wofi/menu`
   - `configs/wofi/menu.css`
 
@@ -317,7 +317,7 @@ Este modulo concentra:
 - Hyfetch:
   - gera `~/.config/hyfetch.json`
 - Waybar:
-  - publica `config`, `style.css`, `dracula.css`
+  - publica `config` e `style.css` (o `style.css` importa as cores do tema atual)
   - publica `air_control.py`
   - publica `spotify_status.sh`
   - publica `launch.sh`
@@ -435,7 +435,6 @@ Arquivos principais:
 
 - `configs/waybar/config`
 - `configs/waybar/style.css`
-- `configs/waybar/dracula.css`
 - `configs/waybar/air_control.py`
 - `configs/waybar/launch.sh`
 - `configs/waybar/switch_sink.sh`
@@ -467,6 +466,42 @@ Cuidados:
 
 - `configs/waybar/config` referencia `hyprlock`, `bluetoothctl` e o modulo `cava`.
 - Nem toda dependencia usada no runtime aparece perto do arquivo que a consome; verifique `home.packages`, `environment.systemPackages` e os servicos do sistema antes de alterar comandos.
+
+### Temas / theme switcher
+
+Arquivo principal:
+
+- `home/themes.nix`
+
+Como funciona:
+
+- Cada tema e um attrset em `palettes`, com dois vocabularios: `ui` (nomes
+  semanticos consumidos por waybar, wofi e bordas do Hyprland) e `term`
+  (vocabulario ANSI do kitty). Todos os temas preenchem todas as chaves; chave
+  faltando quebra na avaliacao, nao em runtime.
+- O Nix gera **todos** os temas de uma vez no store e o Home Manager publica
+  cada um em `~/.config/themes/<nome>/` com `waybar-colors.css`,
+  `wofi-style.css`, `hypr-colors.conf` e `kitty-colors.conf`.
+- Os apps nao leem o tema direto; leem `~/.config/current-theme`, um symlink.
+  Trocar de tema e trocar o symlink e mandar reload: **nao precisa de rebuild**.
+- `theme-switch [nome]` troca (sem argumento, abre seletor no wofi) e
+  `theme-current` imprime o tema ativo. Bind: `$mainMod SHIFT, T`.
+- Reload por app: waybar `SIGUSR2`, kitty `SIGUSR1`, Hyprland `hyprctl reload`.
+  Wofi le o CSS a cada abertura.
+- Temas hoje: `dracula` (o visual anterior) e `catppuccin-mocha`.
+
+Cuidados:
+
+- `~/.config/current-theme` e estado de runtime e **nao** e gerenciado pelo Home
+  Manager de proposito; se fosse, o switch desfaria a troca. Ele e criado
+  apontando para `dracula` pelo `home.activation.currentThemeDefault` apenas
+  quando nao existe.
+- Nao redeclare `col.active_border` / `col.inactive_border` em
+  `configs/hypr/hyprland.conf`: o `source` do tema vem depois do bloco
+  `general {}` e a redeclaracao esconderia a troca.
+- Ao adicionar cor nova a um app, adicione a chave em **todas** as paletas.
+- `services.dunst` e o tema do Doom ainda tem cores proprias hardcoded; nao
+  entram na troca. Se incluir, use a mesma paleta em vez de repetir hex.
 
 ### Waybar AC / Home Assistant
 
@@ -762,6 +797,9 @@ Cuidados:
 - `~/.config/hypr/nixos.png`
 - `~/.config/hypr/scripts/screenshot-active-window.sh`
 - `~/.config/hyfetch.json`
+- `~/.config/wofi/style.css` (so importa `../current-theme/wofi-style.css`)
+- `~/.config/themes/<nome>/*` (gerado por `home/themes.nix`)
+- `~/.config/current-theme` (symlink de runtime; trocado por `theme-switch`)
 - `~/.config/openclaw/gateway.env`
 - `~/.oci/config` (symlink para `/run/agenix/oci_config`)
 - `~/.oci/key.pem` (symlink para `/run/agenix/oci_key`)
@@ -956,6 +994,12 @@ Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
   `sudo sh -c 'cmd > /var/log/x.log 2>&1'`. Escrito por fora, o shell chamador
   (usuario `ubuntu`) nao tem permissao em `/var/log` e o comando morre na hora.
 
+### Temas
+
+- `theme-switch` abre o seletor; `theme-switch catppuccin-mocha` troca direto.
+- `theme-current` mostra o tema ativo.
+- Nenhum dos dois precisa de rebuild.
+
 ### Validacao mais fiel do sistema
 
 - `nix --extra-experimental-features 'nix-command flakes' build --print-out-paths '.#nixosConfigurations."Nixos".config.system.build.toplevel' --no-link`
@@ -989,6 +1033,8 @@ Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
 ## Estado atual que agentes nao devem contradizer
 
 - `configs/hypr/hyprpaper.conf` nao existe mais no repo como fonte de verdade.
+- `configs/waybar/dracula.css` nao existe mais; as cores da waybar sao geradas por tema.
+- `configs/wofi/style.css` nao existe mais; a fonte e `configs/wofi/style.css.in`.
 - `Transmission` nao esta configurado no sistema.
 - `Syncthing` nao esta configurado no sistema.
 - Os secrets do Syncthing foram removidos.

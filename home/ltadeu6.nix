@@ -169,6 +169,8 @@ let
 in
 
 {
+  imports = [ ./themes.nix ];
+
   home.username = "ltadeu6";
   home.homeDirectory = "/home/ltadeu6";
   home.stateVersion = "25.11";
@@ -192,40 +194,16 @@ in
       confirm_os_window_close = 0;
       background_opacity = 1;
       dynamic_background_opacity = "yes";
-      foreground = "#f8f8f2";
-      background = "#282a36";
-      selection_foreground = "#ffffff";
-      selection_background = "#44475a";
-      url_color = "#8be9fd";
-      color0 = "#21222c";
-      color8 = "#6272a4";
-      color1 = "#ff5555";
-      color9 = "#ff6e6e";
-      color2 = "#50fa7b";
-      color10 = "#69ff94";
-      color3 = "#f1fa8c";
-      color11 = "#ffffa5";
-      color4 = "#bd93f9";
-      color12 = "#d6acff";
-      color5 = "#ff79c6";
-      color13 = "#ff92df";
-      color6 = "#8be9fd";
-      color14 = "#a4ffff";
-      color7 = "#f8f8f2";
-      color15 = "#ffffff";
-      cursor = "#f8f8f2";
-      cursor_text_color = "background";
-      active_tab_foreground = "#282a36";
-      active_tab_background = "#f8f8f2";
-      inactive_tab_foreground = "#282a36";
-      inactive_tab_background = "#6272a4";
-      mark1_foreground = "#282a36";
-      mark1_background = "#ff5555";
       shell = "fish";
       editor = "nvim";
       close_on_child_death = "yes";
       term = "xterm-kitty";
     };
+    # As cores vem do tema atual. `include` de caminho absoluto e resolvido
+    # pelo kitty em cada (re)carga, entao SIGUSR1 aplica a troca sem reiniciar.
+    extraConfig = ''
+      include ${config.home.homeDirectory}/.config/current-theme/kitty-colors.conf
+    '';
   };
 
   services.dunst = {
@@ -521,7 +499,6 @@ in
 
     ".config/waybar/config".source = ../configs/waybar/config;
     ".config/waybar/style.css".source = ../configs/waybar/style.css;
-    ".config/waybar/dracula.css".source = ../configs/waybar/dracula.css;
 
     ".config/waybar/air_control.py" = {
       source = ../configs/waybar/air_control.py;
@@ -545,7 +522,12 @@ in
     ".config/doom/packages.el".source = ../configs/doom/packages.el;
 
     ".config/wofi/config".source = ../configs/wofi/config;
-    ".config/wofi/style.css".source = ../configs/wofi/style.css;
+    # O CSS real do wofi vive em configs/wofi/style.css.in e e gerado por
+    # tema; aqui fica so o ponteiro para o tema atual. menu.css importa este
+    # arquivo e herda as cores de graca.
+    ".config/wofi/style.css".text = ''
+      @import "../current-theme/wofi-style.css";
+    '';
     ".config/wofi/menu".source = ../configs/wofi/menu;
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
   };

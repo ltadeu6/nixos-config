@@ -1,3 +1,6 @@
+/* Template de tema: as @chaves@ sao substituidas por home/themes.nix,
+   um arquivo por tema em ~/.config/themes/<nome>/wofi-style.css.
+   O ~/.config/wofi/style.css publicado apenas importa o tema atual. */
 * {
     font-family: "Fira Code Nerd Font";
     font-size: 22px;
@@ -5,7 +8,7 @@
 
 window {
     margin: 0px;
-    border: solid 3px #8be9fd;
+    border: solid 3px @teal@;
     border-radius: 10px;
     background-origin: border-box;
     background-clip: padding-box, border-box;
@@ -15,23 +18,23 @@ window {
 #input {
     margin: 5px;
     border: none;
-    color: #f2f3f7;
+    color: @text@;
     border-radius: 10px;
-    background-color: #44475a;
+    background-color: @surface1@;
 }
 
 #inner-box {
     margin: 5px;
     border: none;
     border-radius: 10px;
-    background-color: #282a36;
+    background-color: @surface0@;
 }
 
 #outer-box {
     margin: 5px;
     border: none;
     border-radius: 10px;
-    background-color: #282a36;
+    background-color: @surface0@;
     padding: 5px;
 }
 
@@ -39,21 +42,21 @@ window {
     border-radius: 15px;
     margin: 5px;
     border: none;
-    color: #f8f8f2;
+    color: @text@;
 }
 
 #entry.activatable #text {
-    color: #282a36;
+    color: @surface0@;
 }
 
 #entry > * {
-    color: #f8f8f2;
+    color: @text@;
     border-radius: 15px;
 }
 
 #entry:selected {
     border-radius: 15px;
-    background-color: #44475a;
+    background-color: @surface1@;
 }
 
 #entry:selected #text {
