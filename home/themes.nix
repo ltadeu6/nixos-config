@@ -249,6 +249,17 @@ let
       ;;; doom-omarchy-theme.el ends here
     '';
 
+  # Miniatura PNG de cada background. Necessaria porque o wofi **nao renderiza
+  # webp** -- verificado na tela: no seletor os .jpg apareciam e os .webp
+  # ficavam sem imagem -- e a maioria dos backgrounds do Omarchy e webp.
+  # O wallpaper em si continua sendo o arquivo original; o hyprpaper le webp.
+  mkThumb = name: w:
+    pkgs.runCommand "thumb-${name}-${w.name}.png" {
+      nativeBuildInputs = [ pkgs.imagemagick ];
+    } ''
+      magick ${w.file} -resize 320x180^ -gravity center -extent 320x180 $out
+    '';
+
   mkTheme = name: p:
     let r = roles p;
     # Parenteses obrigatorios: aplicacao de funcao liga mais forte que `//`,
@@ -277,6 +288,9 @@ let
       # a extensao importa porque hyprpaper e wofi escolhem o decoder por ela.
       name = "backgrounds/${w.name}";
       value = w.file;
+    }) (wallpapersFor name)) // lib.listToAttrs (map (w: {
+      name = "thumbs/${w.name}.png";
+      value = mkThumb name w;
     }) (wallpapersFor name)) // {
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
@@ -388,8 +402,9 @@ let
           b="$(basename "$f")"
           label="$b"
           [ "$b" = "$cur" ] && label="$b  (atual)"
+          # A miniatura e sempre PNG: o wofi nao renderiza webp.
           menu="$menu''${menu:+
-}img:$f:text:$label"
+}img:$current/thumbs/$b.png:text:$label"
         done
 
         choice="$(printf '%s\n' "$menu" | wofi --dmenu --allow-images \
