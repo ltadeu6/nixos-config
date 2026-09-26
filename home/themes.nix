@@ -29,7 +29,16 @@ let
     builtins.replaceStrings (map (k: "@${k}@") (builtins.attrNames vars))
       (builtins.attrValues vars) (builtins.readFile file);
 
-  toHyprColor = hex: "rgba(${lib.removePrefix "#" hex}ff)";
+  # Os overrides de borda do Omarchy nem sempre sao hex: alguns temas trazem a
+  # expressao de cor do Hyprland pronta, inclusive gradiente
+  # ("rgba(26a269ee) rgba(2ec27eee) 45deg") ou "rgb(1e1e1e)". Envolver isso em
+  # rgba(...) gera "rgba(rgba(...)ff)", que o Hyprland rejeita em silencio e
+  # cai na borda branca default. So hex ganha o wrapper.
+  toHyprColor = v:
+    if lib.hasPrefix "#" v then
+      "rgba(${lib.removePrefix "#" v}ff)"
+    else
+      v;
 
   # --- mapa de papeis ------------------------------------------------------
   # Traduz a paleta do Omarchy para os nomes que os configs dos apps usam.
