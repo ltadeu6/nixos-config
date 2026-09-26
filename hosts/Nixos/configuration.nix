@@ -906,7 +906,7 @@ in {
         OLLAMA_KV_CACHE_TYPE = "q8_0";
       };
       loadModels = [
-        "qwen3.5:9b"
+        # "qwen3.5:9b"  # desativado: evitava re-download de 6.6G a cada rebuild
       ];
       syncModels = true;
       # listenAddress = "10.0.0.2:11434";
