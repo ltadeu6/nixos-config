@@ -81,6 +81,16 @@ let
     }
   '';
 
+  # dunst nao tem `include`, mas le drop-ins de ~/.config/dunst/dunstrc.d/*.conf
+  # depois do dunstrc principal -- por isso o tema entra por la e ganha do que
+  # estiver no dunstrc gerado pelo Home Manager.
+  dunstColors = p: ''
+    [global]
+        frame_color = "${p.accent}"
+        background = "${p.darker_background}"
+        foreground = "${p.bright_foreground}"
+  '';
+
   # ANSI do kitty a partir da paleta: preto = fundo escuro, branco = foreground,
   # e os brilhantes nos slots 8-15 como manda o padrao.
   kittyColors = p: ''
@@ -115,6 +125,98 @@ let
     color15 ${p.bright_foreground}
   '';
 
+  # Tema Doom gerado a partir da paleta. Mapear os 23 temas para os ~70 temas
+  # prontos do doom-themes daria combinacoes ruins (nao existe catppuccin,
+  # everforest nem kanagawa la), enquanto `def-doom-theme` precisa exatamente
+  # das cores que a paleta ja tem. O nome do tema e sempre `doom-omarchy`: o
+  # arquivo muda por tema, o simbolo nao, entao o config.el nao precisa saber
+  # qual tema esta ativo.
+  #
+  # As triplas sao (grafico, 256 cores, 16 cores); so a primeira importa aqui.
+  doomTheme = p:
+    let
+      # String Nix normal (nao indentada) para poder escrever o quote da lista
+      # elisp sem colidir com o delimitador . Sem o quote, `("#hex" ...)`
+      # seria avaliado como chamada de funcao. Aspas duplas porque em elisp
+      # `'#282a36` seria quote de simbolo, nao string.
+      c = hex: "'(\"${hex}\" \"${hex}\" \"white\")";
+      orange = p.orange or p.yellow;
+    in ''
+      ;;; doom-omarchy-theme.el --- gerado por home/themes.nix -*- lexical-binding: t; no-byte-compile: t; -*-
+      ;;; Commentary:
+      ;;; NAO EDITE. Gerado a partir da paleta do tema atual.
+      ;;; Code:
+
+      (require 'doom-themes)
+
+      (def-doom-theme doom-omarchy
+        "Tema gerado a partir da paleta do tema ativo do sistema."
+
+        ((bg         ${c p.background})
+         (bg-alt     ${c p.dark_background})
+         (base0      ${c p.darker_background})
+         (base1      ${c p.dark_background})
+         (base2      ${c p.lighter_background})
+         (base3      ${c p.selection})
+         (base4      ${c p.muted})
+         (base5      ${c p.dark_foreground})
+         (base6      ${c p.foreground})
+         (base7      ${c p.light_foreground})
+         (base8      ${c p.bright_foreground})
+         (fg         ${c p.foreground})
+         (fg-alt     ${c p.light_foreground})
+
+         (grey       base4)
+         (red        ${c p.red})
+         (orange     ${c orange})
+         (green      ${c p.green})
+         (teal       ${c p.bright_cyan})
+         (yellow     ${c p.yellow})
+         (blue       ${c p.blue})
+         (dark-blue  ${c p.bright_blue})
+         (magenta    ${c p.magenta})
+         (violet     ${c p.bright_magenta})
+         (cyan       ${c p.cyan})
+         (dark-cyan  ${c p.bright_cyan})
+
+         ;; categorias obrigatorias
+         (accent         ${c p.accent})
+         (highlight      accent)
+         (vertical-bar   (doom-darken base1 0.1))
+         (selection      base3)
+         (builtin        orange)
+         (comments       base5)
+         (doc-comments   (doom-lighten base5 0.25))
+         (constants      cyan)
+         (functions      green)
+         (keywords       magenta)
+         (methods        teal)
+         (operators      violet)
+         (type           violet)
+         (strings        yellow)
+         (variables      fg)
+         (numbers        violet)
+         (region         `(,(car base3) ,@(cdr base1)))
+         (error          red)
+         (warning        yellow)
+         (success        green)
+         (vc-modified    orange)
+         (vc-added       green)
+         (vc-deleted     red)
+
+         (modeline-bg     base2)
+         (modeline-bg-alt base1)
+         (modeline-fg     fg)
+         (modeline-fg-alt base5)))
+
+      ;; Sem bloco de faces extra de proposito: doom-themes-base deriva todas
+      ;; as faces da paleta acima, e a sintaxe `&override` falhou aqui com
+      ;; "wrong-type-argument listp &override" nesta versao do doom-themes.
+
+      (provide-theme 'doom-omarchy)
+      ;;; doom-omarchy-theme.el ends here
+    '';
+
   mkTheme = name: p:
     let r = roles p;
     in pkgs.linkFarm "theme-${name}" {
@@ -125,6 +227,12 @@ let
         pkgs.writeText "${name}-hypr-colors.conf" (hyprColors r);
       "kitty-colors.conf" =
         pkgs.writeText "${name}-kitty-colors.conf" (kittyColors p);
+      "dunst-colors.conf" =
+        pkgs.writeText "${name}-dunst-colors.conf" (dunstColors p);
+      # Nome fixo: `load-theme` procura <simbolo>-theme.el no
+      # custom-theme-load-path, que o config.el aponta para o tema atual.
+      "doom-omarchy-theme.el" =
+        pkgs.writeText "${name}-doom-omarchy-theme.el" (doomTheme p);
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
       "mode" = pkgs.writeText "${name}-mode" "${p.mode}\n";
@@ -136,7 +244,7 @@ let
 
   themeSwitch = pkgs.writeShellApplication {
     name = "theme-switch";
-    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland ];
+    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs ];
     text = ''
       themes_dir=${lib.escapeShellArg themesDir}
       current=${lib.escapeShellArg currentTheme}
@@ -164,9 +272,17 @@ let
       pkill -SIGUSR2 waybar || true   # waybar: recarrega CSS
       pkill -SIGUSR1 kitty  || true   # kitty: recarrega kitty.conf
       hyprctl reload >/dev/null 2>&1 || true
+      dunstctl reload >/dev/null 2>&1 || true
 
+      # Emacs: reavalia o arquivo do tema (o simbolo e o mesmo, o conteudo
+      # mudou) e aplica. Silencioso se nao houver daemon rodando.
+      emacsclient --eval "(progn (load-file \"$current/doom-omarchy-theme.el\") (load-theme 'doom-omarchy t))" \
+        >/dev/null 2>&1 || true
+
+      # A notificacao vem depois do reload do dunst, senao ela mesma sai com a
+      # moldura do tema anterior.
       notify-send -a theme-switch "Tema: $name" \
-        "Waybar, kitty, wofi e bordas atualizados."
+        "Waybar, kitty, wofi, dunst, Emacs e bordas atualizados."
     '';
   };
 
@@ -198,7 +314,14 @@ in {
   home.file = lib.listToAttrs (map (name: {
     name = ".config/themes/${name}";
     value = { source = mkTheme name palettes.${name}; };
-  }) themeNames);
+  }) themeNames) // {
+    # Symlink FORA do store: precisa apontar para o caminho do tema atual e
+    # ser resolvido pelo dunst na leitura, nao congelado no store em build
+    # time. Prefixo 50- para ordenar depois do dunstrc principal.
+    ".config/dunst/dunstrc.d/50-theme.conf".source =
+      config.lib.file.mkOutOfStoreSymlink
+      "${currentTheme}/dunst-colors.conf";
+  };
 
   # O symlink e estado de runtime, nao pode ser gerenciado pelo Home Manager
   # (senao a troca seria desfeita no proximo switch). Criado so se faltar.

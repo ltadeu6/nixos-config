@@ -50,7 +50,12 @@
 ;; `load-theme' function. This is the default:
 ;; (setq doom-theme 'doom-monokai-spectrum)
 ;; (setq doom-theme 'doom-city-lights)
-(setq doom-theme 'doom-dracula)
+;; O tema vem do tema ativo do sistema: ~/.config/current-theme/ contem um
+;; doom-omarchy-theme.el gerado a partir da paleta (ver home/themes.nix). O
+;; simbolo e sempre `doom-omarchy'; o conteudo do arquivo e que muda.
+;; `theme-switch' reavalia o arquivo e reaplica via emacsclient.
+(add-to-list 'custom-theme-load-path (expand-file-name "~/.config/current-theme/"))
+(setq doom-theme 'doom-omarchy)
 ;; deep
 ;; moonlight
 ;; grass
@@ -123,7 +128,11 @@
   (setq persp-emacsclient-init-frame-behaviour-override "main"))
 
 (after! pdf-tools
-  (setq pdf-view-midnight-colors '("#f8f8f2" . "#272935")))
+  ;; Derivado do tema ativo em vez de fixo: assim o modo noturno do PDF
+  ;; acompanha a troca de tema.
+  (setq pdf-view-midnight-colors
+        (cons (face-attribute 'default :foreground)
+              (face-attribute 'default :background))))
 
 (setq +latex-viewers '(pdf-tools))
 
@@ -139,7 +148,9 @@
 (after! dap-mode
   (setq dap-python-debugger 'debugpy))
 
-(setq doom-themes-treemacs-theme "doom-dracula")
+;; "doom-dracula" nao e um valor valido aqui (os validos sao "doom-atom",
+;; "doom-colors", etc.) e nao tem a ver com a paleta -- e o conjunto de icones.
+(setq doom-themes-treemacs-theme "doom-colors")
 
 (with-eval-after-load 'ox-latex
   (add-to-list 'org-latex-classes

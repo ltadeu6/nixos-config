@@ -241,9 +241,8 @@ in
         horizontal_padding = 15;
         text_icon_padding = 15;
         frame_width = 3;
-        frame_color = "#ff2e97";
-        background = "#0c0a20";
-        foreground = "#f2f3f7";
+        # frame_color / background / foreground vem do tema, via o drop-in
+        # ~/.config/dunst/dunstrc.d/50-theme.conf (ver home/themes.nix).
         gap_size = 0;
         separator_color = "frame";
         sort = true;
