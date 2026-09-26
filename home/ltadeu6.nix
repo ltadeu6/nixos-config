@@ -525,8 +525,16 @@ in
     # O CSS real do wofi vive em configs/wofi/style.css.in e e gerado por
     # tema; aqui fica so o ponteiro para o tema atual. menu.css importa este
     # arquivo e herda as cores de graca.
+    #
+    # Caminho ABSOLUTO de proposito. O wofi carrega o CSS com
+    # gtk_css_provider_load_from_data, entao um @import relativo e resolvido
+    # contra o diretorio de trabalho do processo, nao contra o arquivo -- com
+    # "../current-theme/..." o wofi procurava em $PWD/.. e falhava em
+    # silencio (so um Gtk-WARNING no stderr, que ninguem ve). A waybar usa
+    # load_from_path e resolve relativo ao arquivo, por isso la o caminho
+    # relativo funciona: mesma sintaxe, comportamentos diferentes.
     ".config/wofi/style.css".text = ''
-      @import "../current-theme/wofi-style.css";
+      @import "${config.home.homeDirectory}/.config/current-theme/wofi-style.css";
     '';
     ".config/wofi/menu".source = ../configs/wofi/menu;
     ".config/wofi/menu.css".source = ../configs/wofi/menu.css;
