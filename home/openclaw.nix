@@ -2,7 +2,7 @@
 
 {
   programs.openclaw = {
-    enable = true;
+    enable = false;
     documents = ../openclaw/documents;
     instances.default = {
       enable = true;
