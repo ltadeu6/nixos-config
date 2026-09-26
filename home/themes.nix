@@ -244,7 +244,7 @@ let
 
   themeSwitch = pkgs.writeShellApplication {
     name = "theme-switch";
-    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs glib ];
+    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs dconf ];
     text = ''
       themes_dir=${lib.escapeShellArg themesDir}
       current=${lib.escapeShellArg currentTheme}
@@ -277,11 +277,20 @@ let
       # GTK: os apps libadwaita/GTK4 leem color-scheme do dconf em runtime,
       # entao um tema claro deixa de vir com dialogos escuros. O `mode` de
       # cada tema esta no proprio diretorio do tema.
+      # `dconf write` em vez de `gsettings set`: o gsettings exige o schema
+      # org.gnome.desktop.interface no XDG_DATA_DIRS do processo e falhava com
+      # "Nenhum esquema instalado" dentro deste script, sem que o `|| true`
+      # deixasse isso aparecer. O dconf escreve a chave direto.
+      #
+      # Isso cobre apps GTK4/libadwaita, que leem a chave em runtime. Apps
+      # GTK3 leem gtk-application-prefer-dark-theme do settings.ini, que e
+      # estatico, e por isso nao acompanham a troca.
       if [ "$(cat "$current/mode" 2>/dev/null)" = "light" ]; then
-        gsettings set org.gnome.desktop.interface color-scheme prefer-light || true
+        scheme=prefer-light
       else
-        gsettings set org.gnome.desktop.interface color-scheme prefer-dark || true
+        scheme=prefer-dark
       fi
+      dconf write /org/gnome/desktop/interface/color-scheme "'$scheme'" || true
 
       # Emacs: reavalia o arquivo do tema (o simbolo e o mesmo, o conteudo
       # mudou) e aplica. Silencioso se nao houver daemon rodando.
