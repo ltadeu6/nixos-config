@@ -1,4 +1,8 @@
-@import "./style.css";
+/* Caminho absoluto: o wofi carrega CSS com load_from_data, entao @import
+   relativo e resolvido contra o diretorio de trabalho do processo e nao
+   contra este arquivo. Com "./style.css" o import falhava sempre que o
+   wofi nao era lancado de dentro de ~/.config/wofi. */
+@import "/home/ltadeu6/.config/wofi/style.css";
 
 window {
     font-family: "FiraCode Nerd Font Mono";

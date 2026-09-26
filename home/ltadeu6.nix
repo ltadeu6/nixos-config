@@ -198,6 +198,19 @@ in
       editor = "nvim";
       close_on_child_death = "yes";
       term = "xterm-kitty";
+      # Controle remoto: permite que processos rodando como ltadeu6 enviem
+      # comandos e leiam o conteudo de qualquer janela do kitty (inclusive
+      # `send-text`, que digita na janela). `socket-only` recusa o canal de
+      # escape pelo proprio tty, deixando so o socket abaixo; o socket fica
+      # em /run/user/1000, com permissao do usuario.
+      #
+      # ATENCAO: se houver um shell root aberto num kitty, isto da a qualquer
+      # processo do usuario a capacidade de digitar nele -- na pratica, root
+      # sem senha para a sessao inteira. Ligado por pedido explicito.
+      allow_remote_control = "socket-only";
+      # Um socket por instancia (o {kitty_pid}) para instancias nao brigarem
+      # pelo mesmo caminho.
+      listen_on = "unix:/run/user/1000/kitty-{kitty_pid}.sock";
     };
     # As cores vem do tema atual. `include` de caminho absoluto e resolvido
     # pelo kitty em cada (re)carga, entao SIGUSR1 aplica a troca sem reiniciar.
