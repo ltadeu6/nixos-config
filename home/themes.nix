@@ -244,7 +244,7 @@ let
 
   themeSwitch = pkgs.writeShellApplication {
     name = "theme-switch";
-    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs ];
+    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs glib ];
     text = ''
       themes_dir=${lib.escapeShellArg themesDir}
       current=${lib.escapeShellArg currentTheme}
@@ -274,6 +274,15 @@ let
       hyprctl reload >/dev/null 2>&1 || true
       dunstctl reload >/dev/null 2>&1 || true
 
+      # GTK: os apps libadwaita/GTK4 leem color-scheme do dconf em runtime,
+      # entao um tema claro deixa de vir com dialogos escuros. O `mode` de
+      # cada tema esta no proprio diretorio do tema.
+      if [ "$(cat "$current/mode" 2>/dev/null)" = "light" ]; then
+        gsettings set org.gnome.desktop.interface color-scheme prefer-light || true
+      else
+        gsettings set org.gnome.desktop.interface color-scheme prefer-dark || true
+      fi
+
       # Emacs: reavalia o arquivo do tema (o simbolo e o mesmo, o conteudo
       # mudou) e aplica. Silencioso se nao houver daemon rodando.
       emacsclient --eval "(progn (load-file \"$current/doom-omarchy-theme.el\") (load-theme 'doom-omarchy t))" \
@@ -282,7 +291,7 @@ let
       # A notificacao vem depois do reload do dunst, senao ela mesma sai com a
       # moldura do tema anterior.
       notify-send -a theme-switch "Tema: $name" \
-        "Waybar, kitty, wofi, dunst, Emacs e bordas atualizados."
+        "Waybar, kitty, wofi, dunst, Emacs, GTK e bordas atualizados."
     '';
   };
 

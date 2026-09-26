@@ -33,7 +33,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `hosts/NixOracle2/hardware-configuration.nix`: hardware do host. Gerado pelo `nixos-infect` e **corrigido a mao** — o bloco que declara `/boot` e o que faz a maquina bootar; ver "A armadilha do /boot" no fim deste arquivo antes de editar.
 - `home/ltadeu6.nix`: modulo principal do Home Manager do usuario.
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
-- `home/themes.nix`: paletas de cor e o theme switcher de runtime; importado por `home/ltadeu6.nix`.
+- `home/themes.nix`: mapeia a paleta do tema ativo para os configs de cada app e define o theme switcher; importado por `home/ltadeu6.nix`.
+- `home/palettes.nix`: **gerado** -- as 23 paletas (22 do Omarchy + `dracula`) no vocabulario do `colors.toml` do Omarchy. Nao edite a mao.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
@@ -469,39 +470,63 @@ Cuidados:
 
 ### Temas / theme switcher
 
-Arquivo principal:
+Arquivos principais:
 
-- `home/themes.nix`
+- `home/palettes.nix` (gerado): 23 paletas no vocabulario do Omarchy
+  (`accent`, `selection`, `muted`, quatro niveis de background e de
+  foreground, as 13 cores). 22 vem de `omacom/omarchy`, branch `quattro`,
+  `themes/<nome>/colors.toml`; `dracula` e o visual desta maquina escrito no
+  mesmo vocabulario. Reimportar tema de la e copia, nao traducao.
+- `home/themes.nix`: o mapa `roles` traduz esse vocabulario para os nomes que
+  os configs dos apps usam, e os geradores por app produzem os arquivos.
 
 Como funciona:
 
-- Cada tema e um attrset em `palettes`, com dois vocabularios: `ui` (nomes
-  semanticos consumidos por waybar, wofi e bordas do Hyprland) e `term`
-  (vocabulario ANSI do kitty). Todos os temas preenchem todas as chaves; chave
-  faltando quebra na avaliacao, nao em runtime.
 - O Nix gera **todos** os temas de uma vez no store e o Home Manager publica
   cada um em `~/.config/themes/<nome>/` com `waybar-colors.css`,
-  `wofi-style.css`, `hypr-colors.conf` e `kitty-colors.conf`.
+  `wofi-style.css`, `hypr-colors.conf`, `kitty-colors.conf`,
+  `dunst-colors.conf`, `doom-omarchy-theme.el` e `mode`.
 - Os apps nao leem o tema direto; leem `~/.config/current-theme`, um symlink.
   Trocar de tema e trocar o symlink e mandar reload: **nao precisa de rebuild**.
-- `theme-switch [nome]` troca (sem argumento, abre seletor no wofi) e
-  `theme-current` imprime o tema ativo. Bind: `$mainMod SHIFT, T`.
-- Reload por app: waybar `SIGUSR2`, kitty `SIGUSR1`, Hyprland `hyprctl reload`.
-  Wofi le o CSS a cada abertura.
-- Temas hoje: `dracula` (o visual anterior) e `catppuccin-mocha`.
+- `theme-switch [nome]` troca (sem argumento, abre seletor no wofi),
+  `theme-current` imprime o ativo e `theme-list` lista os 23 marcando o atual.
+  Bind: `$mainMod SHIFT, T`.
+
+Como cada app recebe o tema:
+
+| App | Mecanismo | Reload |
+|-----|-----------|--------|
+| waybar | `@import` **relativo** em `configs/waybar/style.css` | `SIGUSR2` |
+| wofi | `@import` **absoluto** no `~/.config/wofi/style.css` gerado | relê ao abrir |
+| kitty | `include` absoluto via `programs.kitty.extraConfig` | `SIGUSR1` |
+| Hyprland | `source` absoluto em `configs/hypr/hyprland.conf` | `hyprctl reload` |
+| dunst | drop-in `~/.config/dunst/dunstrc.d/50-theme.conf` (symlink fora do store) | `dunstctl reload` |
+| Doom Emacs | `custom-theme-load-path` aponta para o tema atual; simbolo fixo `doom-omarchy` | `emacsclient` + `load-theme` |
+| GTK | `gsettings` `color-scheme` conforme o `mode` do tema | imediato |
 
 Cuidados:
 
-- `~/.config/current-theme` e estado de runtime e **nao** e gerenciado pelo Home
-  Manager de proposito; se fosse, o switch desfaria a troca. Ele e criado
+- **Caminho relativo vs absoluto nao e estilo, e obrigacao.** O `source` do
+  Hyprland trata o valor como glob e nao expande `~`. O wofi carrega CSS com
+  `load_from_data`, entao `@import` relativo resolve contra o diretorio de
+  trabalho do processo. A waybar usa `load_from_path` e e o unico caso em que
+  o relativo esta correto. Os tres falham em silencio quando errados.
+- `~/.config/current-theme` e estado de runtime e **nao** e gerenciado pelo
+  Home Manager de proposito; se fosse, o switch desfaria a troca. Criado
   apontando para `dracula` pelo `home.activation.currentThemeDefault` apenas
   quando nao existe.
 - Nao redeclare `col.active_border` / `col.inactive_border` em
   `configs/hypr/hyprland.conf`: o `source` do tema vem depois do bloco
   `general {}` e a redeclaracao esconderia a troca.
-- Ao adicionar cor nova a um app, adicione a chave em **todas** as paletas.
-- `services.dunst` e o tema do Doom ainda tem cores proprias hardcoded; nao
-  entram na troca. Se incluir, use a mesma paleta em vez de repetir hex.
+- O tema Doom e **gerado** por `def-doom-theme` a partir da paleta, nao
+  mapeado para os temas prontos do `doom-themes` (que nao tem catppuccin,
+  everforest nem kanagawa). Nao ha bloco de faces extra: a sintaxe
+  `&override` falha nesta versao com `wrong-type-argument listp &override`,
+  e o `doom-themes-base` deriva as faces da paleta.
+- Ao adicionar cor nova a um app, acrescente ao mapa `roles` -- nao espalhe
+  hex pelos configs.
+- Fora do sistema de temas hoje: o wallpaper (`configs/hypr/nixos.png`, que e
+  escolha do usuario e nao segue tema) e os dashboards do Home Assistant.
 
 ### Waybar AC / Home Assistant
 
@@ -996,9 +1021,12 @@ Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
 
 ### Temas
 
-- `theme-switch` abre o seletor; `theme-switch catppuccin-mocha` troca direto.
-- `theme-current` mostra o tema ativo.
-- Nenhum dos dois precisa de rebuild.
+- `theme-switch` abre o seletor; `theme-switch gruvbox` troca direto.
+- `theme-current` mostra o tema ativo; `theme-list` lista os 23.
+- Nenhum deles precisa de rebuild.
+- Para reimportar/atualizar as paletas do Omarchy, baixe os
+  `themes/<nome>/colors.toml` de `omacom/omarchy` (branch `quattro`) e
+  regenere `home/palettes.nix`.
 
 ### Validacao mais fiel do sistema
 
@@ -1035,6 +1063,8 @@ Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
 - `configs/hypr/hyprpaper.conf` nao existe mais no repo como fonte de verdade.
 - `configs/waybar/dracula.css` nao existe mais; as cores da waybar sao geradas por tema.
 - `configs/wofi/style.css` nao existe mais; a fonte e `configs/wofi/style.css.in`.
+- As cores do dunst nao ficam mais em `services.dunst.settings`; vem do tema.
+- O tema do Doom nao e mais `doom-dracula` fixo; e o `doom-omarchy` gerado.
 - `Transmission` nao esta configurado no sistema.
 - `Syncthing` nao esta configurado no sistema.
 - Os secrets do Syncthing foram removidos.
