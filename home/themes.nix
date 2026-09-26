@@ -23,17 +23,26 @@ let
   wallpapers = import ./wallpapers.nix { inherit (pkgs) fetchurl; };
   previews = import ./previews.nix { inherit (pkgs) fetchurl; };
 
+  # Lista de backgrounds do tema, ordenada pelo nome do arquivo -- que e como
+  # o Omarchy os numera, entao o primeiro e o default do tema.
+  # `dracula` nao tem os do Omarchy: fica com o do usuario, um so.
+  wallpapersFor = name:
+    wallpapers.${name} or [{
+      name = "nixos.png";
+      file = ../configs/hypr/nixos.png;
+    }];
+
   # `dracula` nao tem preview upstream: usa o proprio wallpaper como
   # miniatura. Menos informativo que o mock de UI do Omarchy, mas evita
   # um item sem imagem no meio do seletor.
-  previewFor = name: previews.${name} or (wallpaperFor name).file;
+  previewFor = name:
+    previews.${name} or (builtins.head (wallpapersFor name)).file;
 
-  # `dracula` nao tem wallpaper do Omarchy: fica com o do usuario.
-  wallpaperFor = name:
-    wallpapers.${name} or {
-      ext = "png";
-      file = ../configs/hypr/nixos.png;
-    };
+  # Estado de runtime: qual background de cada tema foi escolhido, e o
+  # hyprpaper.conf gerado a partir disso. Nao pode ficar no store porque e
+  # escolha do usuario, feita depois do build.
+  wallpaperStateDir = "${config.xdg.stateHome}/theme-wallpaper";
+  hyprpaperRuntimeConf = "${config.xdg.stateHome}/hyprpaper/hyprpaper.conf";
 
   themesDir = "${config.xdg.configHome}/themes";
   currentTheme = "${config.xdg.configHome}/current-theme";
@@ -240,21 +249,6 @@ let
       ;;; doom-omarchy-theme.el ends here
     '';
 
-  # Um hyprpaper.conf por tema. O hyprpaper 0.8 usa blocos `wallpaper {}` e
-  # escolhe o decoder pela extensao do arquivo, e nesta versao (0.8.4) nao ha
-  # request de IPC para trocar wallpaper -- todo `hyprctl hyprpaper ...` que
-  # tentei respondeu "invalid hyprpaper request". Dai a abordagem: config por
-  # tema e `hyprpaper --config`, reiniciando o processo na troca.
-  hyprpaperConf = name: ''
-    wallpaper {
-      monitor =
-      path = ${currentTheme}/wallpaper.${(wallpaperFor name).ext}
-      fit_mode = cover
-    }
-
-    splash = false
-  '';
-
   mkTheme = name: p:
     let r = roles p;
     in pkgs.linkFarm "theme-${name}" {
@@ -271,12 +265,15 @@ let
       # custom-theme-load-path, que o config.el aponta para o tema atual.
       "doom-omarchy-theme.el" =
         pkgs.writeText "${name}-doom-omarchy-theme.el" (doomTheme p);
-      "wallpaper.${(wallpaperFor name).ext}" = (wallpaperFor name).file;
-      "hyprpaper.conf" =
-        pkgs.writeText "${name}-hyprpaper.conf" (hyprpaperConf name);
       # Nome fixo com .png: o wofi decide como carregar pela extensao, e o
       # seletor monta a lista com um glob simples.
       "preview.png" = previewFor name;
+    } // lib.listToAttrs (map (w: {
+      # Nomes originais preservados: a numeracao do Omarchy define a ordem, e
+      # a extensao importa porque hyprpaper e wofi escolhem o decoder por ela.
+      name = "backgrounds/${w.name}";
+      value = w.file;
+    }) (wallpapersFor name)) // {
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
       "mode" = pkgs.writeText "${name}-mode" "${p.mode}\n";
@@ -286,9 +283,138 @@ let
 
   # --- switcher de runtime -------------------------------------------------
 
+  # Aplica o wallpaper do tema atual: escolhe o arquivo (lembrado por tema, ou
+  # o primeiro da lista), gera o hyprpaper.conf em runtime e sobe o hyprpaper.
+  #
+  # O config e gerado aqui, e nao no store, porque a escolha do usuario vem
+  # depois do build. O hyprpaper 0.8.4 nao tem request de IPC para trocar
+  # wallpaper -- todo `hyprctl hyprpaper ...` responde "invalid hyprpaper
+  # request" -- entao a troca e por reinicio, com `setsid --fork` (com `&` o
+  # processo morre junto com o script que o chamou).
+  applyWallpaper = pkgs.writeShellApplication {
+    name = "apply-wallpaper";
+    runtimeInputs = with pkgs; [ coreutils procps hyprpaper util-linux ];
+    text = ''
+      current=${lib.escapeShellArg currentTheme}
+      state_dir=${lib.escapeShellArg wallpaperStateDir}
+      conf=${lib.escapeShellArg hyprpaperRuntimeConf}
+
+      theme="$(basename "$(readlink "$current")")"
+      bg_dir="$current/backgrounds"
+
+      if [ ! -d "$bg_dir" ]; then
+        echo "tema $theme sem diretorio de backgrounds" >&2
+        exit 1
+      fi
+
+      # Glob em vez de `ls`: o shellcheck do writeShellApplication rejeita
+      # `ls` em substituicao de comando (SC2012) e o glob nao quebra com
+      # nome estranho. Os itens sao symlinks para o store, entao -e basta.
+      list_bgs() {
+        local f
+        for f in "$bg_dir"/*; do
+          [ -e "$f" ] || continue
+          basename "$f"
+        done | sort
+      }
+
+      chosen=""
+      if [ -f "$state_dir/$theme" ]; then
+        candidate="$(cat "$state_dir/$theme")"
+        [ -e "$bg_dir/$candidate" ] && chosen="$candidate"
+      fi
+      [ -n "$chosen" ] || chosen="$(list_bgs | head -1)"
+      if [ -z "$chosen" ]; then
+        echo "nenhum background em $bg_dir" >&2
+        exit 1
+      fi
+
+      mkdir -p "$(dirname "$conf")"
+      printf 'wallpaper {\n  monitor =\n  path = %s\n  fit_mode = cover\n}\n\nsplash = false\n' \
+        "$bg_dir/$chosen" > "$conf"
+
+      pkill -x hyprpaper || true
+      setsid --fork hyprpaper --config "$conf" >/dev/null 2>&1 || true
+    '';
+  };
+
+  # Seletor de wallpaper do tema atual. Sem argumento abre o seletor visual com
+  # os backgrounds do tema como miniatura; `--next` cicla. A escolha e lembrada
+  # por tema, entao voltar a um tema recupera o wallpaper que estava nele.
+  wallpaperSwitch = pkgs.writeShellApplication {
+    name = "wallpaper-switch";
+    runtimeInputs = with pkgs; [ coreutils wofi libnotify applyWallpaper ];
+    text = ''
+      current=${lib.escapeShellArg currentTheme}
+      state_dir=${lib.escapeShellArg wallpaperStateDir}
+
+      theme="$(basename "$(readlink "$current")")"
+      bg_dir="$current/backgrounds"
+      # Glob em vez de `ls`: o shellcheck do writeShellApplication rejeita
+      # `ls` em substituicao de comando (SC2012) e o glob nao quebra com
+      # nome estranho. Os itens sao symlinks para o store, entao -e basta.
+      list_bgs() {
+        local f
+        for f in "$bg_dir"/*; do
+          [ -e "$f" ] || continue
+          basename "$f"
+        done | sort
+      }
+
+      cur=""
+      [ -f "$state_dir/$theme" ] && cur="$(cat "$state_dir/$theme")"
+      [ -n "$cur" ] || cur="$(list_bgs | head -1)"
+
+      choice="''${1:-}"
+
+      if [ "$choice" = "--next" ]; then
+        # Proximo da lista, voltando ao inicio no fim.
+        choice="$(list_bgs | awk -v c="$cur" '
+          { a[NR] = $0 }
+          END {
+            for (i = 1; i <= NR; i++)
+              if (a[i] == c) { print a[(i % NR) + 1]; exit }
+            print a[1]
+          }')"
+      elif [ -z "$choice" ]; then
+        # Lista vertical de proposito: com `columns` > 1 o wofi carrega imagem
+        # so na primeira fileira e reordena os itens.
+        menu=""
+        for f in "$bg_dir"/*; do
+          b="$(basename "$f")"
+          label="$b"
+          [ "$b" = "$cur" ] && label="$b  (atual)"
+          menu="$menu''${menu:+
+}img:$f:text:$label"
+        done
+
+        choice="$(printf '%s\n' "$menu" | wofi --dmenu --allow-images \
+          --define image_size=120 --width 900 --height 700 \
+          --prompt "Wallpaper ($theme)..." | sed 's/  (atual)$//')" || exit 0
+      fi
+
+      [ -n "$choice" ] || exit 0
+
+      if [ ! -e "$bg_dir/$choice" ]; then
+        echo "background desconhecido em $theme: $choice" >&2
+        echo "disponiveis:" >&2
+        list_bgs >&2
+        exit 1
+      fi
+
+      mkdir -p "$state_dir"
+      printf '%s\n' "$choice" > "$state_dir/$theme"
+      apply-wallpaper
+
+      notify-send -a wallpaper-switch "Wallpaper: $choice" "Tema $theme."
+    '';
+  };
+
   themeSwitch = pkgs.writeShellApplication {
     name = "theme-switch";
-    runtimeInputs = with pkgs; [ coreutils wofi libnotify procps hyprland dunst emacs dconf ];
+    runtimeInputs = with pkgs; [
+      coreutils wofi libnotify procps hyprland dunst emacs dconf applyWallpaper
+    ];
     text = ''
       themes_dir=${lib.escapeShellArg themesDir}
       current=${lib.escapeShellArg currentTheme}
@@ -333,17 +459,9 @@ let
       pkill -SIGUSR1 kitty  || true   # kitty: recarrega kitty.conf
       hyprctl reload >/dev/null 2>&1 || true
 
-      # hyprpaper: sem IPC de troca nesta versao, entao reinicia apontando
-      # para o config do tema. Piscada breve, e o preco de nao depender de
-      # request que nao existe.
-      #
-      # Sem guarda de "só se já estiver rodando": se ele nao estiver de pe,
-      # iniciar e exatamente o certo. Com a guarda, um hyprpaper morto
-      # deixava a sessao sem wallpaper nenhum ate o proximo login.
-      # `setsid --fork` porque `&` aqui nao sobrevive ao fim do script.
-      pkill -x hyprpaper || true
-      setsid --fork hyprpaper --config "$current/hyprpaper.conf" \
-        >/dev/null 2>&1 || true
+      # Wallpaper: delegado, para o theme-switch e o wallpaper-switch nao
+      # terem duas logicas divergentes de qual arquivo aplicar.
+      apply-wallpaper || true
       dunstctl reload >/dev/null 2>&1 || true
 
       # GTK: os apps libadwaita/GTK4 leem color-scheme do dconf em runtime,
@@ -398,7 +516,8 @@ let
   };
 
 in {
-  home.packages = [ themeSwitch themeCurrent themeList ];
+  home.packages =
+    [ themeSwitch themeCurrent themeList wallpaperSwitch applyWallpaper ];
 
   # Publica todos os temas: ~/.config/themes/<nome>/{waybar-colors.css,...}
   home.file = lib.listToAttrs (map (name: {
@@ -431,14 +550,8 @@ in {
       run ${pkgs.procps}/bin/pkill -SIGUSR1 kitty || true
       run ${pkgs.hyprland}/bin/hyprctl reload > /dev/null 2>&1 || true
 
-      # hyprpaper segue rodando com o config que leu ao iniciar (que pode nem
-      # existir mais depois desta ativacao), entao reinicia apontando para o
-      # tema atual. Sem isso, o wallpaper so troca no proximo theme-switch.
-      # `setsid --fork` e nao `&`: o processo em background morria junto com o
-      # script de ativacao, e a sessao ficava sem wallpaper nenhum.
-      run ${pkgs.procps}/bin/pkill -x hyprpaper || true
-      run setsid --fork ${pkgs.hyprpaper}/bin/hyprpaper --config \
-        ${lib.escapeShellArg "${currentTheme}/hyprpaper.conf"} \
-        > /dev/null 2>&1 || true
+      # Wallpaper do tema, via o mesmo caminho do switcher. Sem isso a sessao
+      # fica com o hyprpaper que leu um config que pode nem existir mais.
+      run ${applyWallpaper}/bin/apply-wallpaper > /dev/null 2>&1 || true
     '';
 }
