@@ -311,10 +311,14 @@ let
       # hyprpaper: sem IPC de troca nesta versao, entao reinicia apontando
       # para o config do tema. Piscada breve, e o preco de nao depender de
       # request que nao existe.
-      if pgrep -x hyprpaper >/dev/null; then
-        pkill -x hyprpaper || true
-        setsid hyprpaper --config "$current/hyprpaper.conf" >/dev/null 2>&1 &
-      fi
+      #
+      # Sem guarda de "só se já estiver rodando": se ele nao estiver de pe,
+      # iniciar e exatamente o certo. Com a guarda, um hyprpaper morto
+      # deixava a sessao sem wallpaper nenhum ate o proximo login.
+      # `setsid --fork` porque `&` aqui nao sobrevive ao fim do script.
+      pkill -x hyprpaper || true
+      setsid --fork hyprpaper --config "$current/hyprpaper.conf" \
+        >/dev/null 2>&1 || true
       dunstctl reload >/dev/null 2>&1 || true
 
       # GTK: os apps libadwaita/GTK4 leem color-scheme do dconf em runtime,
@@ -405,11 +409,11 @@ in {
       # hyprpaper segue rodando com o config que leu ao iniciar (que pode nem
       # existir mais depois desta ativacao), entao reinicia apontando para o
       # tema atual. Sem isso, o wallpaper so troca no proximo theme-switch.
-      if ${pkgs.procps}/bin/pgrep -x hyprpaper > /dev/null; then
-        run ${pkgs.procps}/bin/pkill -x hyprpaper || true
-        run setsid ${pkgs.hyprpaper}/bin/hyprpaper --config \
-          ${lib.escapeShellArg "${currentTheme}/hyprpaper.conf"} \
-          > /dev/null 2>&1 &
-      fi
+      # `setsid --fork` e nao `&`: o processo em background morria junto com o
+      # script de ativacao, e a sessao ficava sem wallpaper nenhum.
+      run ${pkgs.procps}/bin/pkill -x hyprpaper || true
+      run setsid --fork ${pkgs.hyprpaper}/bin/hyprpaper --config \
+        ${lib.escapeShellArg "${currentTheme}/hyprpaper.conf"} \
+        > /dev/null 2>&1 || true
     '';
 }
