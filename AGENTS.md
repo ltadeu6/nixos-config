@@ -35,6 +35,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `home/themes.nix`: mapeia a paleta do tema ativo para os configs de cada app e define o theme switcher; importado por `home/ltadeu6.nix`.
 - `home/palettes.nix`: **gerado** -- as 23 paletas (22 do Omarchy + `dracula`) no vocabulario do `colors.toml` do Omarchy. Nao edite a mao.
+- `home/wallpapers.nix`: **gerado** -- um wallpaper por tema do Omarchy, baixado e verificado pelo Nix (nao versionado). Nao edite a mao.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
@@ -502,7 +503,8 @@ Como cada app recebe o tema:
 | Hyprland | `source` absoluto em `configs/hypr/hyprland.conf` | `hyprctl reload` |
 | dunst | drop-in `~/.config/dunst/dunstrc.d/50-theme.conf` (symlink fora do store) | `dunstctl reload` |
 | Doom Emacs | `custom-theme-load-path` aponta para o tema atual; simbolo fixo `doom-omarchy` | `emacsclient` + `load-theme` |
-| GTK | `gsettings` `color-scheme` conforme o `mode` do tema | imediato |
+| GTK | `dconf write` de `color-scheme` conforme o `mode` do tema | imediato (so GTK4/libadwaita) |
+| wallpaper | `hyprpaper.conf` por tema + `hyprpaper --config` | reinicia o hyprpaper |
 
 Cuidados:
 
@@ -525,8 +527,18 @@ Cuidados:
   e o `doom-themes-base` deriva as faces da paleta.
 - Ao adicionar cor nova a um app, acrescente ao mapa `roles` -- nao espalhe
   hex pelos configs.
-- Fora do sistema de temas hoje: o wallpaper (`configs/hypr/nixos.png`, que e
-  escolha do usuario e nao segue tema) e os dashboards do Home Assistant.
+- Wallpaper: cada tema do Omarchy traz o seu (`home/wallpapers.nix`), e o
+  `dracula` mantem `configs/hypr/nixos.png`. O hyprpaper 0.8.4 escolhe o
+  decoder pela **extensao**, entao o arquivo publicado preserva `.webp`/`.jpg`
+  e o `hyprpaper.conf` e gerado por tema; nao existe request de IPC para
+  trocar wallpaper nesta versao (`hyprctl hyprpaper ...` responde sempre
+  "invalid hyprpaper request"), por isso o processo e reiniciado.
+- Ao (re)iniciar o hyprpaper em script de ativacao ou no switcher, use
+  `setsid --fork`. Com `&` o processo morre junto com o script e a sessao
+  fica **sem wallpaper nenhum**; e nao condicione o start a ele "ja estar
+  rodando", senao um hyprpaper morto nunca volta.
+- Fora do sistema de temas hoje: apps GTK3 (leem `settings.ini` estatico) e
+  os dashboards do Home Assistant.
 
 ### Waybar AC / Home Assistant
 
