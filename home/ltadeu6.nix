@@ -462,17 +462,9 @@ in
       depthCapture = off
     '';
     ".config/hypr/hyprland.conf".source = ../configs/hypr/hyprland.conf;
-    ".config/hypr/hyprpaper.conf".text = ''
-      # hyprpaper 0.8 replaced the old `preload =` / `wallpaper = ,path` syntax
-      # with `wallpaper {}` blocks. Empty monitor = fallback for all outputs.
-      wallpaper {
-        monitor =
-        path = ${config.home.homeDirectory}/.config/hypr/nixos.png
-        fit_mode = cover
-      }
-
-      splash = false
-    '';
+    # O hyprpaper.conf agora e gerado por tema (home/themes.nix) e o
+    # hyprpaper e iniciado com --config apontando para o tema atual, porque
+    # o caminho do wallpaper muda de extensao entre temas.
     ".config/hypr/nixos.png".source = ../configs/hypr/nixos.png;
     ".config/hypr/scripts/screenshot-active-window.sh" = {
       executable = true;

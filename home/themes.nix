@@ -20,6 +20,14 @@
 
 let
   palettes = import ./palettes.nix;
+  wallpapers = import ./wallpapers.nix { inherit (pkgs) fetchurl; };
+
+  # `dracula` nao tem wallpaper do Omarchy: fica com o do usuario.
+  wallpaperFor = name:
+    wallpapers.${name} or {
+      ext = "png";
+      file = ../configs/hypr/nixos.png;
+    };
 
   themesDir = "${config.xdg.configHome}/themes";
   currentTheme = "${config.xdg.configHome}/current-theme";
@@ -226,6 +234,21 @@ let
       ;;; doom-omarchy-theme.el ends here
     '';
 
+  # Um hyprpaper.conf por tema. O hyprpaper 0.8 usa blocos `wallpaper {}` e
+  # escolhe o decoder pela extensao do arquivo, e nesta versao (0.8.4) nao ha
+  # request de IPC para trocar wallpaper -- todo `hyprctl hyprpaper ...` que
+  # tentei respondeu "invalid hyprpaper request". Dai a abordagem: config por
+  # tema e `hyprpaper --config`, reiniciando o processo na troca.
+  hyprpaperConf = name: ''
+    wallpaper {
+      monitor =
+      path = ${currentTheme}/wallpaper.${(wallpaperFor name).ext}
+      fit_mode = cover
+    }
+
+    splash = false
+  '';
+
   mkTheme = name: p:
     let r = roles p;
     in pkgs.linkFarm "theme-${name}" {
@@ -242,6 +265,9 @@ let
       # custom-theme-load-path, que o config.el aponta para o tema atual.
       "doom-omarchy-theme.el" =
         pkgs.writeText "${name}-doom-omarchy-theme.el" (doomTheme p);
+      "wallpaper.${(wallpaperFor name).ext}" = (wallpaperFor name).file;
+      "hyprpaper.conf" =
+        pkgs.writeText "${name}-hyprpaper.conf" (hyprpaperConf name);
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
       "mode" = pkgs.writeText "${name}-mode" "${p.mode}\n";
@@ -281,6 +307,14 @@ let
       pkill -SIGUSR2 waybar || true   # waybar: recarrega CSS
       pkill -SIGUSR1 kitty  || true   # kitty: recarrega kitty.conf
       hyprctl reload >/dev/null 2>&1 || true
+
+      # hyprpaper: sem IPC de troca nesta versao, entao reinicia apontando
+      # para o config do tema. Piscada breve, e o preco de nao depender de
+      # request que nao existe.
+      if pgrep -x hyprpaper >/dev/null; then
+        pkill -x hyprpaper || true
+        setsid hyprpaper --config "$current/hyprpaper.conf" >/dev/null 2>&1 &
+      fi
       dunstctl reload >/dev/null 2>&1 || true
 
       # GTK: os apps libadwaita/GTK4 leem color-scheme do dconf em runtime,
@@ -309,7 +343,7 @@ let
       # A notificacao vem depois do reload do dunst, senao ela mesma sai com a
       # moldura do tema anterior.
       notify-send -a theme-switch "Tema: $name" \
-        "Waybar, kitty, wofi, dunst, Emacs, GTK e bordas atualizados."
+        "Waybar, kitty, wofi, dunst, Emacs, GTK, wallpaper e bordas atualizados."
     '';
   };
 
@@ -367,5 +401,15 @@ in {
       run ${pkgs.procps}/bin/pkill -SIGUSR2 waybar || true
       run ${pkgs.procps}/bin/pkill -SIGUSR1 kitty || true
       run ${pkgs.hyprland}/bin/hyprctl reload > /dev/null 2>&1 || true
+
+      # hyprpaper segue rodando com o config que leu ao iniciar (que pode nem
+      # existir mais depois desta ativacao), entao reinicia apontando para o
+      # tema atual. Sem isso, o wallpaper so troca no proximo theme-switch.
+      if ${pkgs.procps}/bin/pgrep -x hyprpaper > /dev/null; then
+        run ${pkgs.procps}/bin/pkill -x hyprpaper || true
+        run setsid ${pkgs.hyprpaper}/bin/hyprpaper --config \
+          ${lib.escapeShellArg "${currentTheme}/hyprpaper.conf"} \
+          > /dev/null 2>&1 &
+      fi
     '';
 }
