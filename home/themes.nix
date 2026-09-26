@@ -21,6 +21,12 @@
 let
   palettes = import ./palettes.nix;
   wallpapers = import ./wallpapers.nix { inherit (pkgs) fetchurl; };
+  previews = import ./previews.nix { inherit (pkgs) fetchurl; };
+
+  # `dracula` nao tem preview upstream: usa o proprio wallpaper como
+  # miniatura. Menos informativo que o mock de UI do Omarchy, mas evita
+  # um item sem imagem no meio do seletor.
+  previewFor = name: previews.${name} or (wallpaperFor name).file;
 
   # `dracula` nao tem wallpaper do Omarchy: fica com o do usuario.
   wallpaperFor = name:
@@ -268,6 +274,9 @@ let
       "wallpaper.${(wallpaperFor name).ext}" = (wallpaperFor name).file;
       "hyprpaper.conf" =
         pkgs.writeText "${name}-hyprpaper.conf" (hyprpaperConf name);
+      # Nome fixo com .png: o wofi decide como carregar pela extensao, e o
+      # seletor monta a lista com um glob simples.
+      "preview.png" = previewFor name;
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
       "mode" = pkgs.writeText "${name}-mode" "${p.mode}\n";
@@ -287,9 +296,25 @@ let
 
       name="''${1:-}"
 
-      # Sem argumento: abre o mesmo wofi do launcher como seletor.
+      # Sem argumento: seletor visual. Cada linha vira "img:<preview>:text:<nome>",
+      # que o wofi renderiza como miniatura + rotulo com --allow-images.
+      #
+      # Lista vertical de proposito: com `columns` > 1 o wofi carrega imagem so
+      # na primeira fileira e reordena os itens, entao o grid nao serve.
+      # O tema ativo vem marcado e o prefixo e removido depois da escolha.
       if [ -z "$name" ]; then
-        name="$(printf '%s\n' "$available" | wofi --dmenu --prompt 'Tema...')" || exit 0
+        current_name="$(basename "$(readlink "$current")" 2>/dev/null || echo "")"
+        menu=""
+        for t in $available; do
+          label="$t"
+          [ "$t" = "$current_name" ] && label="$t  (atual)"
+          menu="$menu''${menu:+
+}img:$themes_dir/$t/preview.png:text:$label"
+        done
+
+        name="$(printf '%s\n' "$menu" | wofi --dmenu --allow-images \
+          --define image_size=120 --width 900 --height 700 \
+          --prompt 'Tema...' | sed 's/  (atual)$//')" || exit 0
       fi
       [ -n "$name" ] || exit 0
 
