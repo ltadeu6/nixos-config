@@ -288,11 +288,20 @@ in {
 
   # O symlink e estado de runtime, nao pode ser gerenciado pelo Home Manager
   # (senao a troca seria desfeita no proximo switch). Criado so se faltar.
+  #
+  # O reload no fim garante que a ativacao termine com a sessao consistente:
+  # waybar e kitty seguem com o CSS/conf que leram ao iniciar, e o Hyprland
+  # precisa reler o `source` do tema. Tudo com `|| true` porque ativacao fora
+  # de sessao grafica e normal.
   home.activation.currentThemeDefault =
     lib.hm.dag.entryAfter [ "linkGeneration" ] ''
       if [ ! -e ${lib.escapeShellArg currentTheme} ]; then
         run ln -sfn ${lib.escapeShellArg "${themesDir}/${defaultTheme}"} \
           ${lib.escapeShellArg currentTheme}
       fi
+
+      run ${pkgs.procps}/bin/pkill -SIGUSR2 waybar || true
+      run ${pkgs.procps}/bin/pkill -SIGUSR1 kitty || true
+      run ${pkgs.hyprland}/bin/hyprctl reload > /dev/null 2>&1 || true
     '';
 }
