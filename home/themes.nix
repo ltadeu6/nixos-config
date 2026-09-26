@@ -273,7 +273,9 @@ let
     name = "theme-current";
     runtimeInputs = with pkgs; [ coreutils ];
     text = ''
-      basename "$(readlink -f ${lib.escapeShellArg currentTheme})"
+      # readlink sem -f de proposito: -f resolve a cadeia inteira ate o
+      # /nix/store e imprimiria "<hash>-theme-dracula" em vez de "dracula".
+      basename "$(readlink ${lib.escapeShellArg currentTheme})"
     '';
   };
 
