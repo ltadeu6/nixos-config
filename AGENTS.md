@@ -35,7 +35,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `home/openclaw.nix`: modulo opcional do OpenClaw; so entra se `enableOpenClaw = true` em `flake.nix`.
 - `home/themes.nix`: mapeia a paleta do tema ativo para os configs de cada app e define o theme switcher; importado por `home/ltadeu6.nix`.
 - `home/palettes.nix`: **gerado** -- as 23 paletas (22 do Omarchy + `dracula`) no vocabulario do `colors.toml` do Omarchy. Nao edite a mao.
-- `home/wallpapers.nix`: **gerado** -- um wallpaper por tema do Omarchy, baixado e verificado pelo Nix (nao versionado). Nao edite a mao.
+- `home/wallpapers.nix`: **gerado** -- os 92 backgrounds dos 22 temas do Omarchy, baixados e verificados pelo Nix (~52 MB, nao versionados). Nao edite a mao.
+- `home/previews.nix`: **gerado** -- o `preview.png` de cada tema, usado como miniatura no seletor visual. Nao edite a mao.
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
@@ -403,7 +404,7 @@ Comportamentos importantes:
   - monitor lateral `STD Computer Inc LED`
 - Autostart:
   - `waybar`
-  - `hyprpaper --config ~/.config/current-theme/hyprpaper.conf`
+  - `apply-wallpaper` (gera o config do hyprpaper e o inicia)
   - `dbus-launch kdeconnect-indicator`
   - shell snippet que usa `hyprctl`, `jq` e `xrandr` para forcar monitor primario
 - `antimicrox` e o perfil `/etc/antimicrox/controller-mouse.amgp` continuam instalados, mas nao iniciam automaticamente porque o perfil pode prender o cursor no centro da tela.
@@ -429,12 +430,13 @@ Cuidados:
 
 ### Hyprpaper
 
-- O wallpaper vem do tema: cada tema publica `wallpaper.<ext>` e um
-  `hyprpaper.conf` proprio em `~/.config/themes/<nome>/`, e o hyprpaper roda
-  com `--config ~/.config/current-theme/hyprpaper.conf`.
+- O wallpaper vem do tema: cada tema publica `backgrounds/` e `thumbs/` em
+  `~/.config/themes/<nome>/`, e o `apply-wallpaper` gera
+  `$XDG_STATE_HOME/hyprpaper/hyprpaper.conf` apontando para o background
+  escolhido, reiniciando o hyprpaper.
 - O `dracula` usa `configs/hypr/nixos.png`; os demais vem de
   `home/wallpapers.nix`. Ver "Temas / theme switcher" para as armadilhas
-  (extensao obrigatoria, ausencia de IPC, `setsid --fork`).
+  (extensao obrigatoria, webp no wofi, ausencia de IPC, `setsid --fork`).
 - Para trocar o wallpaper do `dracula`, substitua `configs/hypr/nixos.png`.
 
 ### Waybar
@@ -495,9 +497,19 @@ Como funciona:
   `dunst-colors.conf`, `doom-omarchy-theme.el` e `mode`.
 - Os apps nao leem o tema direto; leem `~/.config/current-theme`, um symlink.
   Trocar de tema e trocar o symlink e mandar reload: **nao precisa de rebuild**.
-- `theme-switch [nome]` troca (sem argumento, abre seletor no wofi),
+- `theme-switch [nome]` troca; sem argumento abre o **seletor visual**, com o
+  `preview.png` de cada tema como miniatura e o ativo marcado.
   `theme-current` imprime o ativo e `theme-list` lista os 23 marcando o atual.
   Bind: `$mainMod SHIFT, T`.
+- `wallpaper-switch [arquivo|--next]` troca o wallpaper **dentro do tema
+  atual**; sem argumento abre o seletor visual com os backgrounds do tema.
+  A escolha e lembrada por tema em `$XDG_STATE_HOME/theme-wallpaper/<tema>`,
+  entao voltar a um tema recupera o wallpaper que estava nele.
+  Binds: `$mainMod SHIFT, W` (seletor) e `$mainMod CTRL, W` (proximo).
+- `apply-wallpaper` aplica o wallpaper do tema atual: gera
+  `$XDG_STATE_HOME/hyprpaper/hyprpaper.conf` e reinicia o hyprpaper. E o
+  unico lugar que decide qual arquivo entra -- `theme-switch`, o
+  `wallpaper-switch` e o `exec-once` do Hyprland todos passam por ele.
 
 Como cada app recebe o tema:
 
@@ -510,7 +522,7 @@ Como cada app recebe o tema:
 | dunst | drop-in `~/.config/dunst/dunstrc.d/50-theme.conf` (symlink fora do store) | `dunstctl reload` |
 | Doom Emacs | `custom-theme-load-path` aponta para o tema atual; simbolo fixo `doom-omarchy` | `emacsclient` + `load-theme` |
 | GTK | `dconf write` de `color-scheme` conforme o `mode` do tema | imediato (so GTK4/libadwaita) |
-| wallpaper | `hyprpaper.conf` por tema + `hyprpaper --config` | reinicia o hyprpaper |
+| wallpaper | `apply-wallpaper` gera o `hyprpaper.conf` em runtime | reinicia o hyprpaper |
 
 Cuidados:
 
@@ -533,12 +545,24 @@ Cuidados:
   e o `doom-themes-base` deriva as faces da paleta.
 - Ao adicionar cor nova a um app, acrescente ao mapa `roles` -- nao espalhe
   hex pelos configs.
-- Wallpaper: cada tema do Omarchy traz o seu (`home/wallpapers.nix`), e o
-  `dracula` mantem `configs/hypr/nixos.png`. O hyprpaper 0.8.4 escolhe o
-  decoder pela **extensao**, entao o arquivo publicado preserva `.webp`/`.jpg`
-  e o `hyprpaper.conf` e gerado por tema; nao existe request de IPC para
-  trocar wallpaper nesta versao (`hyprctl hyprpaper ...` responde sempre
-  "invalid hyprpaper request"), por isso o processo e reiniciado.
+- Wallpaper: cada tema publica `backgrounds/` (arquivos originais do Omarchy,
+  nomes preservados -- a numeracao define a ordem e o primeiro e o default) e
+  `thumbs/<arquivo>.png`. O `dracula` tem so `configs/hypr/nixos.png`.
+- **O wofi nao renderiza webp.** Verificado na tela: no seletor os `.jpg`
+  apareciam e os `.webp` ficavam sem imagem, e a maioria dos backgrounds do
+  Omarchy e webp. Por isso existe `thumbs/`, com PNG 320x180 gerado por
+  imagemagick; o wallpaper aplicado continua sendo o arquivo original, que o
+  hyprpaper le sem problema.
+- O `hyprpaper.conf` **nao** fica no store: qual background esta escolhido e
+  decisao de runtime. O hyprpaper 0.8.4 escolhe o decoder pela extensao do
+  arquivo e nao tem request de IPC para trocar wallpaper
+  (`hyprctl hyprpaper ...` responde sempre "invalid hyprpaper request"), por
+  isso a troca e por reinicio do processo.
+- Ao montar o diretorio do tema em `mkTheme`, o argumento do `linkFarm`
+  precisa de **parenteses**: aplicacao de funcao liga mais forte que `//`,
+  entao `linkFarm "x" { ... } // extra` passa so o primeiro attrset e mescla
+  o resto no resultado. O Nix aceita (`//` sobre derivation e valido) e o
+  build passa, mas o tema sai sem os arquivos extras.
 - Ao (re)iniciar o hyprpaper em script de ativacao ou no switcher, use
   `setsid --fork`. Com `&` o processo morre junto com o script e a sessao
   fica **sem wallpaper nenhum**; e nao condicione o start a ele "ja estar
@@ -846,6 +870,8 @@ Cuidados:
 - `~/.config/wofi/style.css` (so importa `../current-theme/wofi-style.css`)
 - `~/.config/themes/<nome>/*` (gerado por `home/themes.nix`)
 - `~/.config/current-theme` (symlink de runtime; trocado por `theme-switch`)
+- `$XDG_STATE_HOME/hyprpaper/hyprpaper.conf` (gerado por `apply-wallpaper`)
+- `$XDG_STATE_HOME/theme-wallpaper/<tema>` (escolha de wallpaper por tema)
 - `~/.config/openclaw/gateway.env`
 - `~/.oci/config` (symlink para `/run/agenix/oci_config`)
 - `~/.oci/key.pem` (symlink para `/run/agenix/oci_key`)
@@ -1042,8 +1068,9 @@ Aprendidas gastando horas. **Verifique o sistema, nao o campo de status.**
 
 ### Temas
 
-- `theme-switch` abre o seletor; `theme-switch gruvbox` troca direto.
+- `theme-switch` abre o seletor visual; `theme-switch gruvbox` troca direto.
 - `theme-current` mostra o tema ativo; `theme-list` lista os 23.
+- `wallpaper-switch` abre o seletor de wallpaper do tema; `--next` cicla.
 - Nenhum deles precisa de rebuild.
 - Para reimportar/atualizar as paletas do Omarchy, baixe os
   `themes/<nome>/colors.toml` de `omacom/omarchy` (branch `quattro`) e
