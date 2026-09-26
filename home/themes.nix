@@ -251,7 +251,11 @@ let
 
   mkTheme = name: p:
     let r = roles p;
-    in pkgs.linkFarm "theme-${name}" {
+    # Parenteses obrigatorios: aplicacao de funcao liga mais forte que `//`,
+    # entao `linkFarm "x" {...} // extra` passaria apenas o primeiro attrset
+    # e mesclaria o resto no resultado -- o tema saia sem os backgrounds e o
+    # build nao reclamava, porque `//` sobre derivation e valido.
+    in pkgs.linkFarm "theme-${name}" ({
       "waybar-colors.css" =
         pkgs.writeText "${name}-waybar-colors.css" (waybarColors r);
       "wofi-style.css" = pkgs.writeText "${name}-wofi-style.css" (wofiStyle r);
@@ -277,7 +281,7 @@ let
       # Registra se o tema e claro ou escuro; usado por quem precisar decidir
       # variante (GTK, por exemplo) e util para depurar.
       "mode" = pkgs.writeText "${name}-mode" "${p.mode}\n";
-    };
+    });
 
   themeNames = builtins.attrNames palettes;
 
