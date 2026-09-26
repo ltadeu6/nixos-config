@@ -87,6 +87,85 @@ let
         --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}
     '';
   };
+  # --- TF2 crash watcher -------------------------------------------------
+  # O TF2 segfaulta em silencio na troca de mapa (client.so -> vgui2.so).
+  # Este servico observa novos coredumps do tf_linux64, guarda o backtrace
+  # junto com um snapshot do console.log e avisa na tela.
+  tf2Root = "/mnt/games/SteamLibrary/steamapps/common/Team Fortress 2";
+  tf2ConsoleLog = "${tf2Root}/tf/console.log";
+  tf2CrashReportDir = "${config.home.homeDirectory}/Backups/tf2-crashes";
+  tf2CrashStateDir = "${config.xdg.stateHome}/tf2-crashwatch";
+  tf2CrashWatch = pkgs.writeShellScript "tf2-crashwatch" ''
+    set -eu
+
+    reports=${lib.escapeShellArg tf2CrashReportDir}
+    state_dir=${lib.escapeShellArg tf2CrashStateDir}
+    cursor="$state_dir/last-coredump-time"
+    console_log=${lib.escapeShellArg tf2ConsoleLog}
+
+    ${pkgs.coreutils}/bin/mkdir -p "$reports" "$state_dir"
+
+    # Lista os coredumps do tf_linux64 como "<time_us> <pid>", mais antigos primeiro.
+    list_dumps() {
+      ${pkgs.systemd}/bin/coredumpctl list --no-legend --json=short tf_linux64 2>/dev/null \
+        | ${pkgs.jq}/bin/jq -r '.[] | "\(.time) \(.pid)"' \
+        || true
+    }
+
+    # Primeira execucao: marca os crashes ja existentes como vistos, para nao
+    # despejar o historico inteiro de uma vez.
+    if [ ! -f "$cursor" ]; then
+      list_dumps | ${pkgs.coreutils}/bin/tail -1 | ${pkgs.gawk}/bin/awk '{print ($1 == "" ? 0 : $1)}' > "$cursor"
+      [ -s "$cursor" ] || echo 0 > "$cursor"
+    fi
+
+    while :; do
+      last="$(${pkgs.coreutils}/bin/cat "$cursor" 2>/dev/null || echo 0)"
+
+      while read -r t pid; do
+        [ -n "''${t:-}" ] || continue
+        [ "$t" -gt "$last" ] 2>/dev/null || continue
+
+        stamp="$(${pkgs.coreutils}/bin/date -d "@$((t / 1000000))" +%Y%m%d-%H%M%S)"
+        out="$reports/crash-$stamp-pid$pid.txt"
+
+        {
+          echo "TF2 crash - $(${pkgs.coreutils}/bin/date -d "@$((t / 1000000))" '+%F %T') (pid $pid)"
+          echo
+          echo "=== coredumpctl info ==="
+          ${pkgs.systemd}/bin/coredumpctl info "$pid" 2>&1 \
+            | ${pkgs.gnused}/bin/sed -n '/Stack trace of thread/,/^$/p' \
+            | ${pkgs.coreutils}/bin/head -30
+          echo
+          echo "=== console.log (ultimas 200 linhas) ==="
+          if [ -f "$console_log" ]; then
+            ${pkgs.coreutils}/bin/tail -200 "$console_log" | ${pkgs.coreutils}/bin/tr -d '\r'
+          else
+            echo "(console.log ausente - con_logfile nao esta ativo em cfg/overrides/autoexec.cfg)"
+          fi
+        } > "$out" 2>&1
+
+        # console.log e reaproveitado entre partidas; guarda uma copia intacta.
+        if [ -f "$console_log" ]; then
+          ${pkgs.coreutils}/bin/cp -f "$console_log" "$reports/console-$stamp-pid$pid.log" || true
+        fi
+
+        echo "$t" > "$cursor"
+        echo "TF2 crashou (pid $pid); relatorio em $out" >&2
+
+        ${pkgs.libnotify}/bin/notify-send \
+          --urgency=critical \
+          --icon=dialog-error \
+          "TF2 crashou" \
+          "Relatorio salvo em $out" || true
+      done <<EOF
+    $(list_dumps)
+    EOF
+
+      ${pkgs.coreutils}/bin/sleep 30
+    done
+  '';
+
 in
 
 {
@@ -491,6 +570,17 @@ in
       Type = "oneshot";
       ExecStart = "${gameSaveLudusaviBackup}";
     };
+  };
+
+  systemd.user.services.tf2-crashwatch = {
+    Unit.Description = "Watch for Team Fortress 2 crashes and capture diagnostics";
+    Service = {
+      Type = "simple";
+      ExecStart = "${tf2CrashWatch}";
+      Restart = "always";
+      RestartSec = "30s";
+    };
+    Install.WantedBy = [ "default.target" ];
   };
 
   systemd.user.timers.game-save-ludusavi-backup = {
