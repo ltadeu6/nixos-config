@@ -40,7 +40,11 @@ let
       [ -n "$FLUID_PID" ] && kill "$FLUID_PID" 2>/dev/null || true
       ${pkgs.coreutils}/bin/rm -f "$FIFO"
     }
-    trap cleanup EXIT INT TERM
+    # INT/TERM precisam SAIR, nao so limpar: com `trap cleanup INT TERM` o
+    # handler rodava e o script voltava para o laco, o systemd esperava os 90s
+    # de timeout e matava com SIGKILL -- travando todo rebuild e logout.
+    trap 'cleanup; exit 0' INT TERM
+    trap cleanup EXIT
 
     # Numero do cliente ALSA seq cujo nome casa com o padrao, ou vazio.
     seq_client() {
