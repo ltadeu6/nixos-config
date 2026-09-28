@@ -26,11 +26,22 @@
 
    Estado base = workspace COM janela. */
 #workspaces button {
+    /* Fonte explicita: a regra `*` usa FreeMono, que NAO tem os glifos Nerd
+       Font. O fontconfig substituia o glifo mas a metrica da caixa continuava
+       a do FreeMono, e o icone saia deslocado dentro do botao -- era o que
+       exigia a margem assimetrica que havia aqui antes. Com a pilula visivel
+       o desalinhamento passou a aparecer. */
+    font-family: "FiraCode Nerd Font Mono";
     color: @teal;
     background: alpha(@teal, 0.18);
     border-radius: 6px;
-    margin: 0 0.35rem;
-    padding: 0 0.45rem;
+    /* Margem vertical: sem ela o botao ocupa os 48px inteiros da barra e a
+       pilula encosta em cima e embaixo. */
+    margin: 7px 0.3rem;
+    padding: 0;
+    /* Largura minima igual para todos: os glifos Nerd Font tem larguras
+       diferentes, e sem isso as pilulas ficam de tamanhos distintos. */
+    min-width: 1.9rem;
 }
 #workspaces button:hover {
     box-shadow: none;
@@ -65,9 +76,6 @@
 #workspaces button.active {
     color: @surface0;
     background: @teal;
-    border-radius: 6px;
-    margin: 0 0.35rem;
-    padding: 0 0.45rem;
 }
 
 #custom-lock,
