@@ -38,7 +38,15 @@
     /* Margem vertical: sem ela o botao ocupa os 48px inteiros da barra e a
        pilula encosta em cima e embaixo. */
     margin: 7px 0.3rem;
-    padding: 0;
+    /* 5px a mais na direita: os glifos Nerd Font nao tem a tinta centrada na
+       propria caixa de avanco, e com padding simetrico a folga esquerda da
+       pilula fica visivelmente maior. Valor medido, nao estimado: capturando
+       a barra e comparando as folgas da pilula, o desvio vai de +2,5px (sem
+       padding) para +1,0px (3px) e para 0,0px (5px). 6px e 7px passam do
+       ponto, para -0,5 e -1,0.
+       Trocar para "Symbols Nerd Font Mono" foi testado e nao ajudou: ficou
+       nos mesmos +2,5px do inicio. */
+    padding: 0 5px 0 0;
     /* Largura minima igual para todos: os glifos Nerd Font tem larguras
        diferentes, e sem isso as pilulas ficam de tamanhos distintos. */
     min-width: 1.9rem;
