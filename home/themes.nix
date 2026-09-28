@@ -63,6 +63,49 @@ let
     else
       v;
 
+  # --- contraste -----------------------------------------------------------
+  # Escolher cor de estado por matiz nao sobrevive a troca de paleta: medindo
+  # os 23 temas, `muted` (usado para workspace vazio) ficava abaixo de 2:1
+  # contra o fundo em 11 deles, e `red` vs `accent` (ativo vs com janela)
+  # ficava abaixo de 1,3:1 em 12. Por isso o vazio passa a ser escolhido por
+  # contraste, e o ativo passa a ser pilula preenchida no CSS.
+  #
+  # A metrica e diferenca de brilho (W3C brightness difference), nao WCAG:
+  # WCAG exige pow(x, 2.4) e o Nix nao tem exponenciacao de float. Brilho da
+  # para fazer com inteiro puro. O resultado foi conferido depois com WCAG de
+  # verdade nos 23 temas.
+  hexDigits = {
+    "0" = 0; "1" = 1; "2" = 2; "3" = 3; "4" = 4; "5" = 5; "6" = 6; "7" = 7;
+    "8" = 8; "9" = 9; "a" = 10; "b" = 11; "c" = 12; "d" = 13; "e" = 14;
+    "f" = 15;
+  };
+
+  hexByte = s:
+    16 * hexDigits.${builtins.substring 0 1 s} + hexDigits.${
+      builtins.substring 1 1 s
+    };
+
+  brightness = hex:
+    let h = lib.toLower (lib.removePrefix "#" hex);
+    in (299 * (hexByte (builtins.substring 0 2 h))
+      + 587 * (hexByte (builtins.substring 2 2 h))
+      + 114 * (hexByte (builtins.substring 4 2 h))) / 1000;
+
+  absDiff = a: b: if a > b then a - b else b - a;
+
+  # Primeiro candidato que se destaca o suficiente do fundo; se nenhum passa,
+  # o que mais se destaca. A ordem dos candidatos define a hierarquia visual
+  # (do mais discreto ao mais forte), entao o vazio nunca fica mais chamativo
+  # que o necessario.
+  pickVisible = bg: threshold: candidates:
+    let
+      bgL = brightness bg;
+      diff = c: absDiff (brightness c) bgL;
+      ok = lib.filter (c: diff c >= threshold) candidates;
+      best = lib.foldl' (a: c: if diff c > diff a then c else a)
+        (builtins.head candidates) candidates;
+    in if ok != [ ] then builtins.head ok else best;
+
   # --- mapa de papeis ------------------------------------------------------
   # Traduz a paleta do Omarchy para os nomes que os configs dos apps usam.
   # `orange`/`brown` faltam em alguns temas e os overrides de borda existem em
@@ -78,6 +121,22 @@ let
     green = p.green;
     yellow = p.yellow;
     lavender = p.light_foreground; # borda da pilula do relogio
+
+    # Workspace vazio: `muted` e a escolha natural, mas em varios temas ele
+    # desaparece no fundo. Cai para os foregrounds progressivamente mais
+    # fortes ate destacar.
+    #
+    # Limiar 100 de brilho (0-255) foi calibrado medindo o resultado nos 23
+    # temas com WCAG de verdade: deixa o pior caso em 3,6:1 e nenhum tema
+    # abaixo de 3:1. Com 60 quatro temas ficavam abaixo de 2,5:1
+    # (catppuccin-latte 1,9 e flexoki-light 2,0 entre eles); com 120+ o vazio
+    # fica mais chamativo do que precisa e a hierarquia se perde.
+    wsEmpty = pickVisible p.background 100 [
+      p.muted
+      p.dark_foreground
+      p.light_foreground
+      p.foreground
+    ];
 
     borderActive = p.hyprland_active_border or p.accent;
     borderInactive = p.hyprland_inactive_border or p.muted;
@@ -95,6 +154,7 @@ let
     "green"
     "yellow"
     "lavender"
+    "wsEmpty"
   ];
 
   waybarColors = r:

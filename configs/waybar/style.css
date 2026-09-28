@@ -28,12 +28,30 @@
     transition: none;
 }
 
+/* Vazio: cor escolhida por contraste em home/themes.nix, nao `muted` fixo --
+   em 11 dos 23 temas o `muted` ficava abaixo de 2:1 contra o fundo da barra e
+   o workspace vazio simplesmente desaparecia. */
 #workspaces button.empty {
-    color: @surface2;
+    color: @wsEmpty;
 }
 
+/* Visivel no outro monitor: neutro de alto contraste, sem competir com o
+   ativo. */
 #workspaces button.visible {
-    color: @red;
+    color: @text;
+}
+
+/* Ativo: pilula preenchida, invertendo fundo e texto. Distinguir o ativo por
+   matiz (era `red` contra o `accent` dos demais) nao sobrevive a troca de
+   paleta -- em 12 temas as duas cores tem praticamente o mesmo brilho. Forma
+   funciona em qualquer paleta. Precisa vir depois de `.visible`, porque o
+   workspace ativo tambem tem essa classe. */
+#workspaces button.active {
+    color: @surface0;
+    background: @teal;
+    border-radius: 6px;
+    padding: 0 0.5rem;
+    margin: 0 0.5rem 0 0.1rem;
 }
 
 #custom-lock,
