@@ -12,18 +12,21 @@ set -eu
 
 json_escape() { sed 's/\\/\\\\/g; s/"/\\"/g' ; }
 
+# Cada chamada ao kdeconnect-cli custa ~1s (faz descoberta por D-Bus e
+# espera). Por isso a lista de pareados e consultada apenas quando nao ha
+# nenhum dispositivo acessivel -- no caso comum, uma chamada em vez de duas.
 avail="$(kdeconnect-cli -a --name-only 2>/dev/null || true)"
-paired="$(kdeconnect-cli -l --name-only 2>/dev/null || true)"
 
 if [ -n "$(printf '%s' "$avail" | tr -d '[:space:]')" ]; then
   tip="Conectado: $(printf '%s' "$avail" | paste -sd', ' -)"
   cls="connected"
 else
+  cls="disconnected"
   tip="Nenhum dispositivo acessivel"
+  paired="$(kdeconnect-cli -l --name-only 2>/dev/null || true)"
   if [ -n "$(printf '%s' "$paired" | tr -d '[:space:]')" ]; then
     tip="$tip\nPareados: $(printf '%s' "$paired" | paste -sd', ' -)"
   fi
-  cls="disconnected"
 fi
 
 # `\\n` e nao `\n`: o printf converteria `\n` numa quebra de linha real,

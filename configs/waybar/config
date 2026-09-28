@@ -144,7 +144,9 @@
     // tooltip -- sem texto na barra.
     "custom/kdeconnect": {
         "exec": "~/.config/waybar/kdeconnect.sh",
-        "interval": 30,
+        // 60s e nao 30s: uma chamada ao kdeconnect-cli leva ~1s, medido.
+        // Dispositivo entrando e saindo da rede nao precisa de reacao rapida.
+        "interval": 60,
         "return-type": "json",
         "on-click": "kdeconnect-app"
     },
