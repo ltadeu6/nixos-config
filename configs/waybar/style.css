@@ -113,22 +113,37 @@
     margin: 0 5px 0 10px;
 }
 
+/* As cores dos modulos seguem uma alternancia, nao um significado: da
+   esquerda para a direita o lado direito da barra faz
+   verde - teal - azul - magenta - amarelo - vermelho, sem repetir cor
+   adjacente. O vermelho ficar no poweroff e coincidencia util. */
 #custom-sleep,
-#custom-sysinfo,
+#custom-spotify,
 #network {
     color: @green;
 }
 
 #custom-exit,
-#custom-spotify,
 #pulseaudio {
     color: @yellow;
 }
 
+#custom-sysinfo {
+    color: @magenta;
+}
+
+#cava {
+    color: @blue;
+}
+
 #custom-kde,
 #custom-lock,
-#custom-kdeconnect {
+#network {
     color: @teal;
+}
+
+#custom-kdeconnect {
+    color: @blue;
 }
 
 /* Sem dispositivo acessivel: usa a mesma cor escolhida por contraste do
@@ -144,7 +159,8 @@
 
 #clock,
 #custom-ac {
-    color: @text;
+    /* Havia um `color: @text` aqui antes desta linha, que nunca teve efeito
+       porque a declaracao seguinte o sobrescrevia. */
     color: @yellow;
     font-family: "GohuFont 11 Nerd Font Mono";
     font-weight: 700;

@@ -122,6 +122,12 @@ let
     yellow = p.yellow;
     lavender = p.light_foreground; # borda da pilula do relogio
 
+    # Expostos para a alternancia de cores dos modulos da barra: sem eles
+    # sobravam so quatro cores para seis modulos e havia repeticao com um
+    # modulo de intervalo.
+    blue = p.blue;
+    magenta = p.magenta;
+
     # Workspace vazio: `muted` e a escolha natural, mas em varios temas ele
     # desaparece no fundo. Cai para os foregrounds progressivamente mais
     # fortes ate destacar.
@@ -155,6 +161,8 @@ let
     "yellow"
     "lavender"
     "wsEmpty"
+    "blue"
+    "magenta"
   ];
 
   waybarColors = r:
