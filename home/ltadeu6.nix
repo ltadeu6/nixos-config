@@ -1,30 +1,84 @@
 { config, pkgs, lib, ... }:
 
 let
+  # FluidSynth para o teclado MIDI (Arturia Minilab3).
+  #
+  # Duas coisas que este wrapper resolve, ambas medidas:
+  #
+  # 1. O fluidsynth queimava 100% de um core desde o login. A causa nao era o
+  #    driver de audio: sem `-i` ele abre o shell de comandos proprio, e num
+  #    servico systemd o stdin e /dev/null, que retorna EOF na hora -- o shell
+  #    entao fica em laco lendo EOF para sempre (thread principal em estado R
+  #    com wchan=0, girando em userspace). Medido: 102% com stdin em
+  #    /dev/null, 2,2% com o FIFO abaixo.
+  #
+  #    O FIFO existe porque `-i` sozinho nao serve (sem shell e sem modo
+  #    servidor o fluidsynth sai imediatamente) e `-is` abre um shell TCP em
+  #    *:9800, em todas as interfaces -- o fluidsynth tem `shell.port` mas
+  #    nao tem opcao de endereco de escuta, e o firewall deste host esta
+  #    desabilitado. Um FIFO com escritor aberto e nenhum dado deixa o shell
+  #    bloqueado no read, inerte, sem abrir socket nenhum.
+  #
+  # 2. O fluidsynth subia no login mesmo sem teclado conectado e ficava
+  #    ligado para sempre. Agora ele so e iniciado quando o Minilab3 aparece
+  #    no ALSA seq, e e encerrado quando o teclado e desconectado.
   fluidsynthStart = pkgs.writeShellScript "fluidsynth-start" ''
-    ${pkgs.fluidsynth}/bin/fluidsynth \
-      -a pulseaudio -m alsa_seq -g 1.0 -q \
-      ${pkgs.soundfont-fluid}/share/soundfonts/FluidR3_GM2-2.sf2 >/dev/null &
-    FLUID_PID=$!
+    set -u
 
-    # Loop indefinitely: connect Minilab3 when it appears, reconnect if unplugged
-    while kill -0 "$FLUID_PID" 2>/dev/null; do
-      MINI=$(${pkgs.gawk}/bin/awk '/"Minilab3"/{print $2}' /proc/asound/seq/clients 2>/dev/null)
-      FLUID=$(${pkgs.gawk}/bin/awk '/FLUID Synth/{print $2}' /proc/asound/seq/clients 2>/dev/null)
-      if [ -n "$MINI" ] && [ -n "$FLUID" ]; then
-        if ${pkgs.alsa-utils}/bin/aconnect -l 2>/dev/null | grep -q "Connected From:.*$MINI"; then
-          : # already connected
-        else
-          echo "Connecting Minilab3 ($MINI) -> FluidSynth ($FLUID)" >&2
-          ${pkgs.alsa-utils}/bin/aconnect "$MINI:0" "$FLUID:0" >&2
+    SOUNDFONT=${pkgs.soundfont-fluid}/share/soundfonts/FluidR3_GM2-2.sf2
+    FIFO="''${XDG_RUNTIME_DIR:-/tmp}/fluidsynth-stdin.$$"
+
+    ${pkgs.coreutils}/bin/rm -f "$FIFO"
+    ${pkgs.coreutils}/bin/mkfifo -m 600 "$FIFO"
+    # Abre o FIFO para leitura E escrita: mantem um escritor vivo, entao o
+    # shell do fluidsynth nunca ve EOF e nunca entra no laco.
+    exec 9<>"$FIFO"
+
+    FLUID_PID=""
+
+    cleanup() {
+      [ -n "$FLUID_PID" ] && kill "$FLUID_PID" 2>/dev/null || true
+      ${pkgs.coreutils}/bin/rm -f "$FIFO"
+    }
+    trap cleanup EXIT INT TERM
+
+    # Numero do cliente ALSA seq cujo nome casa com o padrao, ou vazio.
+    seq_client() {
+      ${pkgs.gawk}/bin/awk -v pat="$1" 'index($0, pat) { print $2; exit }' \
+        /proc/asound/seq/clients 2>/dev/null
+    }
+
+    fluid_alive() {
+      [ -n "$FLUID_PID" ] && kill -0 "$FLUID_PID" 2>/dev/null
+    }
+
+    while :; do
+      MINI="$(seq_client '"Minilab3"')"
+
+      if [ -n "$MINI" ]; then
+        if ! fluid_alive; then
+          echo "Minilab3 presente ($MINI): iniciando fluidsynth" >&2
+          ${pkgs.fluidsynth}/bin/fluidsynth \
+            -a pulseaudio -m alsa_seq -g 1.0 -q "$SOUNDFONT" \
+            <&9 >/dev/null 2>&1 &
+          FLUID_PID=$!
         fi
-      else
-        echo "Waiting: MINI='$MINI' FLUID='$FLUID'" >&2
+
+        FLUID="$(seq_client 'FLUID Synth')"
+        if [ -n "$FLUID" ] \
+          && ! ${pkgs.alsa-utils}/bin/aconnect -l 2>/dev/null \
+            | grep -q "Connected From:.*$MINI"; then
+          echo "Conectando Minilab3 ($MINI) -> FluidSynth ($FLUID)" >&2
+          ${pkgs.alsa-utils}/bin/aconnect "$MINI:0" "$FLUID:0" >&2 || true
+        fi
+      elif fluid_alive; then
+        echo "Minilab3 desconectado: encerrando fluidsynth" >&2
+        kill "$FLUID_PID" 2>/dev/null || true
+        FLUID_PID=""
       fi
+
       ${pkgs.coreutils}/bin/sleep 2
     done
-
-    wait $FLUID_PID
   '';
 
   gameSaveBackupRoot = "${config.home.homeDirectory}/Backups/game-saves";
