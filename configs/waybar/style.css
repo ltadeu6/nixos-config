@@ -15,11 +15,15 @@
     color: @teal;
 }
 
+/* Estado base = workspace COM janela. O sublinhado e proposital: em temas
+   como vantablack, white e ethereal o `accent` e o candidato de "vazio" tem
+   brilho quase igual (1,3:1 entre si), entao a cor sozinha nao diferencia
+   ocupado de vazio. Forma diferencia em qualquer paleta. */
 #workspaces button {
     color: @teal;
     margin: 0 0.8rem 0 0.4rem;
-    padding: 0;
-    /* border-bottom-width: 1px; */
+    padding: 0 0 2px 0;
+    border-bottom: 2px solid @teal;
 }
 #workspaces button:hover {
     box-shadow: none;
@@ -33,6 +37,7 @@
    o workspace vazio simplesmente desaparecia. */
 #workspaces button.empty {
     color: @wsEmpty;
+    border-bottom-color: transparent;
 }
 
 /* Visivel no outro monitor: neutro de alto contraste, sem competir com o
@@ -50,6 +55,7 @@
     color: @surface0;
     background: @teal;
     border-radius: 6px;
+    border-bottom-color: transparent;
     padding: 0 0.5rem;
     margin: 0 0.5rem 0 0.1rem;
 }
