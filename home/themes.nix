@@ -407,9 +407,12 @@ let
 }img:$current/thumbs/$b.png:text:$label"
         done
 
+        # Mesmo motivo do theme-switch: a saida vem como
+        # "img:/caminho/thumb.png:text:1-foo.jpg".
         choice="$(printf '%s\n' "$menu" | wofi --dmenu --allow-images \
           --define image_size=120 --width 900 --height 700 \
-          --prompt "Wallpaper ($theme)..." | sed 's/  (atual)$//')" || exit 0
+          --prompt "Wallpaper ($theme)..." \
+          | sed -e 's/^img:.*:text://' -e 's/  (atual)$//')" || exit 0
       fi
 
       [ -n "$choice" ] || exit 0
@@ -457,9 +460,14 @@ let
 }img:$themes_dir/$t/preview.png:text:$label"
         done
 
+        # O wofi em --dmenu devolve a LINHA INTEIRA, nao so a parte de texto:
+        # "img:/caminho/preview.png:text:nord". Sem tirar o prefixo, o nome do
+        # tema vira a linha toda, o diretorio nao existe e o script sai com
+        # erro -- que, vindo de um bind, nao aparece em lugar nenhum.
         name="$(printf '%s\n' "$menu" | wofi --dmenu --allow-images \
           --define image_size=120 --width 900 --height 700 \
-          --prompt 'Tema...' | sed 's/  (atual)$//')" || exit 0
+          --prompt 'Tema...' \
+          | sed -e 's/^img:.*:text://' -e 's/  (atual)$//')" || exit 0
       fi
       [ -n "$name" ] || exit 0
 
