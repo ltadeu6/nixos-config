@@ -158,16 +158,20 @@
         "return-type": "json",
         "on-click": "kitty -e htop"
     },
+    // `-p spotifyd,spotify` e uma lista de prioridade do playerctl: o nome
+    // MPRIS do spotifyd desta versao e apenas `spotify`, e nao
+    // `spotifyd.instance<pid>` como o padrao antigo assumia. A lista cobre os
+    // dois sem precisar descobrir o nome com `playerctl -l`.
     "custom/spotify": {
         "exec": "~/.config/waybar/spotify_status.sh",
         "interval": 2,
         "format": "{}",
         "return-type": "text",
-        "on-click": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) play-pause",
-        "on-click-middle": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) previous",
-        "on-click-right": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) next",
-        "on-scroll-up": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) volume 0.1+",
-        "on-scroll-down": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) volume 0.1-"
+        "on-click": "playerctl -p spotifyd,spotify play-pause",
+        "on-click-middle": "playerctl -p spotifyd,spotify previous",
+        "on-click-right": "playerctl -p spotifyd,spotify next",
+        "on-scroll-up": "playerctl -p spotifyd,spotify volume 0.1+",
+        "on-scroll-down": "playerctl -p spotifyd,spotify volume 0.1-"
     },
     "network": {
         "format": "{icon}",
