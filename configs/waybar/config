@@ -64,17 +64,23 @@
         // SUPER+5..9; simplesmente nao ocupam um botao na barra enquanto
         // estiverem vazios, e aparecem sozinhos quando tiverem janela.
         "persistent-workspaces": {
-            "DP-3": [1, 2, 3, 4],
-            "DP-5": [1, 2, 3, 4],
+            "DP-3": [1, 2, 3, 4, 5],
+            "DP-5": [1, 2, 3, 4, 5],
             "HDMI-A-1": [10]
         },
         "format": "{icon}",
         "format-icons": {
-            "1": "",
+            // 1 navegador (Zen). A fonte nao tem glifo da Zen, e o anterior
+            // era a marca do Firefox; globo generico no lugar.
+            "1": "",
             "2": "",
             "3": "",
             "4": "󰯉",
-            "10": "",
+            // 5 Spotify: o glifo veio do workspace 10.
+            "5": "",
+            // 10 fica no monitor lateral -- icone de monitor, que era o unico
+            // significado real dele depois que o Spotify saiu.
+            "10": "",
             // Fallback para workspace aberto sob demanda: ponto neutro, sem
             // fingir um significado que ele nao tem.
             "default": ""
