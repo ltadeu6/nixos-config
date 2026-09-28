@@ -508,6 +508,14 @@ in
       source = ../configs/waybar/air_control.py;
       executable = true;
     };
+    ".config/waybar/kdeconnect.sh" = {
+      source = ../configs/waybar/kdeconnect.sh;
+      executable = true;
+    };
+    ".config/waybar/sysinfo.sh" = {
+      source = ../configs/waybar/sysinfo.sh;
+      executable = true;
+    };
     ".config/waybar/spotify_status.sh" = {
       source = ../configs/waybar/spotify_status.sh;
       executable = true;

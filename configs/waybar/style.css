@@ -93,10 +93,9 @@
 #custom-sleep,
 #custom-poweroff,
 #custom-spotify,
-#battery,
+#custom-kdeconnect,
+#custom-sysinfo,
 #pulseaudio,
-#bluetooth,
-#backlight,
 #network {
     padding: 0 1rem;
 }
@@ -115,22 +114,27 @@
 }
 
 #custom-sleep,
-#battery,
+#custom-sysinfo,
 #network {
     color: @green;
 }
 
 #custom-exit,
 #custom-spotify,
-#pulseaudio,
-#backlight {
+#pulseaudio {
     color: @yellow;
 }
 
 #custom-kde,
 #custom-lock,
-#bluetooth {
+#custom-kdeconnect {
     color: @teal;
+}
+
+/* Sem dispositivo acessivel: usa a mesma cor escolhida por contraste do
+   workspace vazio, em vez de um cinza fixo que desaparece em varios temas. */
+#custom-kdeconnect.disconnected {
+    color: @wsEmpty;
 }
 
 #custom-restart,
@@ -145,10 +149,6 @@
     font-family: "GohuFont 11 Nerd Font Mono";
     font-weight: 700;
     letter-spacing: 1.5px;
-}
-
-#battery.warning:not(.charging) {
-    color: @red;
 }
 
 /* .modules-left, */

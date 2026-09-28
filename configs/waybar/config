@@ -11,10 +11,9 @@
     "modules-right": [
         "custom/spotify",
         "network",
-        "bluetooth",
+        "custom/kdeconnect",
+        "custom/sysinfo",
         "pulseaudio",
-        "backlight",
-        "battery",
         "custom/poweroff"
     ],
     "group/power": {
@@ -63,10 +62,9 @@
         // lateral. Os workspaces 5 a 9 continuam existindo e acessiveis por
         // SUPER+5..9; simplesmente nao ocupam um botao na barra enquanto
         // estiverem vazios, e aparecem sozinhos quando tiverem janela.
+        // Monitor unico (DP-3, a ultrawide): DP-5 e HDMI-A-1 nao existem mais.
         "persistent-workspaces": {
-            "DP-3": [1, 2, 3, 4, 5],
-            "DP-5": [1, 2, 3, 4, 5],
-            "HDMI-A-1": [10]
+            "DP-3": [1, 2, 3, 4, 5]
         },
         "format": "{icon}",
         "format-icons": {
@@ -78,9 +76,6 @@
             "4": "󰯉",
             // 5 Spotify: o glifo veio do workspace 10.
             "5": "",
-            // 10 fica no monitor lateral -- icone de monitor, que era o unico
-            // significado real dele depois que o Spotify saiu.
-            "10": "",
             // Fallback para workspace aberto sob demanda: ponto neutro, sem
             // fingir um significado que ele nao tem.
             "default": ""
@@ -144,22 +139,22 @@
         "ignored-sinks": ["Easy Effects Sink"],
         "tooltip-format": "{icon} {volume}"
     },
-    "bluetooth": {
-        "format": "󰂯",
-        "format-connected": "󰂱",
-        "format-connected-battery": "󰂱",
-        "tooltip-format": "{controller_alias}\t{controller_address}\n\n{num_connections} connected",
-        "tooltip-format-connected": "{device_enumerate}",
-        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
-        "tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
-        "on-click": "bluetoothctl disconnect",
-        "on-click-right": "bluetoothctl connect B6:97:1A:3D:6A:B2"
+    // Substitui o `tray` generico: o icone do tray vem do app e nao acompanha
+    // o tema. Aqui o glifo e um so, a cor vem do CSS e os detalhes ficam no
+    // tooltip -- sem texto na barra.
+    "custom/kdeconnect": {
+        "exec": "~/.config/waybar/kdeconnect.sh",
+        "interval": 30,
+        "return-type": "json",
+        "on-click": "kdeconnect-app"
     },
-    "backlight": {
-        "device": "intel_backlight",
-        "format": "{icon}",
-        "scroll-step": 5,
-        "format-icons": ["󰃛", "󰃜", "󰃝", "󰃞", "󰃟", "󰃠"]
+    // Um glifo com CPU, RAM, GPU e disco no tooltip, em vez de uma fileira de
+    // porcentagens na barra.
+    "custom/sysinfo": {
+        "exec": "~/.config/waybar/sysinfo.sh",
+        "interval": 5,
+        "return-type": "json",
+        "on-click": "kitty -e htop"
     },
     "custom/spotify": {
         "exec": "~/.config/waybar/spotify_status.sh",
@@ -171,18 +166,6 @@
         "on-click-right": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) next",
         "on-scroll-up": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) volume 0.1+",
         "on-scroll-down": "playerctl -p $(playerctl -l | rg '^spotifyd\\.instance' -m1) volume 0.1-"
-    },
-    "battery": {
-        "format": "{icon} ",
-        "format-icons": ["", "", "", "", ""],
-        "format-charging": "{icon}",
-        "format-full": "{icon}",
-        "interval": 15,
-        "states": {
-            "warning": 25,
-            "critical": 10
-        },
-        "tooltip": false
     },
     "network": {
         "format": "{icon}",
