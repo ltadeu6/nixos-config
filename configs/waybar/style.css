@@ -15,14 +15,17 @@
     color: @teal;
 }
 
-/* Os tres estados usam a MESMA pilula, mudando so o preenchimento:
-   vazio sem fundo, com janela com fundo tenue, ativo com fundo cheio.
-   Geometria identica nos tres evita o que uma borda inferior causava --
-   ela fica na base do botao, que e bem mais alto que o glifo, e a largura
-   acompanha cada icone, saindo baixa e irregular.
-   Intensidade de preenchimento tambem e independente de paleta, o que cor
-   sozinha nao e: em vantablack, white e ethereal o `accent` e o candidato
-   de vazio tem brilho quase igual (1,3:1 entre si).
+/* Os tres estados usam sublinhado, nao preenchimento:
+     vazio      -- sem sublinhado, icone apagado (@wsEmpty)
+     com janela -- sublinhado fino, icone neutro (@text)
+     ativo      -- sublinhado grosso, icone no accent
+   O accent e exclusivo do ativo de proposito: quando os ocupados usavam
+   accent e o ativo usava @text, o ativo parecia MENOS destacado, porque o
+   accent e a cor mais saturada da paleta.
+   O padding inferior compensa a espessura da borda para a altura total ser
+   igual nos tres, senao a fileira desloca ao trocar de workspace.
+   Distinguir por forma e nao so por cor e necessario: em vantablack, white e
+   ethereal o accent e a cor do vazio tem brilho quase igual (1,3:1).
 
    Estado base = workspace COM janela. */
 #workspaces button {
@@ -32,23 +35,27 @@
        exigia a margem assimetrica que havia aqui antes. Com a pilula visivel
        o desalinhamento passou a aparecer. */
     font-family: "FiraCode Nerd Font Mono";
-    color: @teal;
-    background: alpha(@teal, 0.18);
+    color: @text;
+    background: transparent;
+    /* Raio explicito: as pontas curvas do sublinhado sao intencionais, e
+       declarar aqui evita depender do default do tema GTK. */
     border-radius: 6px;
-    /* Margem vertical: sem ela o botao ocupa os 48px inteiros da barra e a
-       pilula encosta em cima e embaixo. */
-    margin: 7px 0.3rem;
+    border-bottom: 2px solid @text;
+    /* Margem vertical: sem ela o botao ocupa os 48px inteiros da barra e o
+       sublinhado fica colado na base, longe do glifo. */
+    margin: 11px 0.3rem 7px 0.3rem;
     /* 5px a mais na direita: os glifos Nerd Font nao tem a tinta centrada na
        propria caixa de avanco, e com padding simetrico a folga esquerda da
        pilula fica visivelmente maior. Valor medido, nao estimado: capturando
-       a barra e comparando as folgas da pilula, o desvio vai de +2,5px (sem
+       a barra e comparando as folgas do glifo, o desvio vai de +2,5px (sem
        padding) para +1,0px (3px) e para 0,0px (5px). 6px e 7px passam do
        ponto, para -0,5 e -1,0.
        Trocar para "Symbols Nerd Font Mono" foi testado e nao ajudou: ficou
        nos mesmos +2,5px do inicio. */
-    padding: 0 5px 0 0;
+    padding: 0 5px 4px 0;
     /* Largura minima igual para todos: os glifos Nerd Font tem larguras
-       diferentes, e sem isso as pilulas ficam de tamanhos distintos. */
+       diferentes, e sem isso cada sublinhado sai de um tamanho -- era o que
+       fazia a primeira tentativa parecer irregular. */
     min-width: 1.9rem;
 }
 #workspaces button:hover {
@@ -63,14 +70,13 @@
    o workspace vazio simplesmente desaparecia. */
 #workspaces button.empty {
     color: @wsEmpty;
-    background: transparent;
+    border-bottom-color: transparent;
 }
 
 /* Visivel no outro monitor: neutro de alto contraste, sem competir com o
    ativo. */
 #workspaces button.visible {
     color: @text;
-    background: alpha(@text, 0.18);
 }
 
 /* Ativo: pilula preenchida, invertendo fundo e texto. Distinguir o ativo por
@@ -82,8 +88,9 @@
    classe. Mesmo padding e margin dos outros estados, para a fileira nao
    deslocar quando o ativo muda. */
 #workspaces button.active {
-    color: @surface0;
-    background: @teal;
+    color: @teal;
+    border-bottom: 4px solid @teal;
+    padding: 0 5px 2px 0;
 }
 
 #custom-lock,
