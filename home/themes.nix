@@ -358,6 +358,44 @@ let
     bright_white = "${p.bright_foreground}"
   '';
 
+  # Paleta do starship. Declara as cores do tema como uma `palette` e aplica
+  # so nos modulos de maior impacto -- diretorio, git e o caractere do prompt.
+  # O resto fica no default de proposito: o starship.toml define o prompt
+  # inteiro, e redesenhar o prompt nao e o que "integrar o tema" pede.
+  #
+  # O starship le o config a cada prompt, entao a troca de tema aparece no
+  # proximo Enter, sem reiniciar shell.
+  starshipConfig = p: ''
+    # GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
+    palette = "system"
+
+    [palettes.system]
+    accent = "${p.accent}"
+    muted = "${p.muted}"
+    fg = "${p.foreground}"
+    red = "${p.red}"
+    green = "${p.green}"
+    yellow = "${p.yellow}"
+    blue = "${p.blue}"
+    magenta = "${p.magenta}"
+
+    [directory]
+    style = "bold accent"
+
+    [git_branch]
+    style = "bold magenta"
+
+    [git_status]
+    style = "bold yellow"
+
+    [character]
+    success_symbol = "[>](bold green)"
+    error_symbol = "[>](bold red)"
+
+    [cmd_duration]
+    style = "muted"
+  '';
+
   mkThumb = name: w:
     pkgs.runCommand "thumb-${name}-${w.name}.png" {
       nativeBuildInputs = [ pkgs.imagemagick ];
@@ -384,6 +422,8 @@ let
       "spotify-player-theme.toml" =
         pkgs.writeText "${name}-spotify-player-theme.toml"
         (spotifyPlayerTheme p);
+      "starship.toml" =
+        pkgs.writeText "${name}-starship.toml" (starshipConfig p);
       # Nome fixo: `load-theme` procura <simbolo>-theme.el no
       # custom-theme-load-path, que o config.el aponta para o tema atual.
       "doom-omarchy-theme.el" =
@@ -662,6 +702,18 @@ in {
     # Symlink FORA do store: precisa apontar para o caminho do tema atual e
     # ser resolvido pelo dunst na leitura, nao congelado no store em build
     # time. Prefixo 50- para ordenar depois do dunstrc principal.
+    # O bat usa o tema `ansi`, que le as cores ANSI do proprio terminal. Como
+    # o kitty ja acompanha o tema, o bat acompanha de graca -- sem gerar um
+    # .tmTheme por paleta nem rodar `bat cache --build` na ativacao.
+    ".config/bat/config".text = ''
+      --theme=ansi
+    '';
+
+    # Symlink fora do store: o starship le o config a cada prompt, entao a
+    # troca de tema aparece no proximo Enter.
+    ".config/starship.toml".source =
+      config.lib.file.mkOutOfStoreSymlink "${currentTheme}/starship.toml";
+
     # Symlink FORA do store, pelo mesmo motivo do drop-in do dunst: precisa
     # resolver pelo tema atual na leitura. O app.toml do spotify-player nao e
     # gerenciado por este repo; para usar isto, ele precisa ter
