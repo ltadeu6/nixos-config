@@ -396,6 +396,83 @@ let
     style = "muted"
   '';
 
+  # Prefs do Zen por tema.
+  #
+  # `ui.systemUsesDarkTheme` e a pref que o Firefox usa para emular a
+  # preferencia do sistema: com 1, as paginas recebem
+  # `prefers-color-scheme: dark`. E o que faz site que respeita a media query
+  # acompanhar o tema, sem injetar CSS e sem quebrar layout.
+  #
+  # `browser.theme.content-theme` e `toolbar-theme` usam 0=escuro, 1=claro.
+  #
+  # LIMITACAO: o Firefox le user.js apenas na inicializacao. Trocar de tema
+  # nao muda o navegador ja aberto -- e preciso reiniciar o Zen.
+  zenUserJs = p:
+    let dark = if p.mode == "light" then "0" else "1";
+        contentTheme = if p.mode == "light" then "1" else "0";
+    in ''
+      // GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
+      user_pref("ui.systemUsesDarkTheme", ${dark});
+      user_pref("browser.theme.content-theme", ${contentTheme});
+      user_pref("browser.theme.toolbar-theme", ${contentTheme});
+      // Necessario para o userChrome.css/userContent.css do tema serem lidos.
+      user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+    '';
+
+  # Interface do Zen. Sobrescreve as VARIAVEIS de tema do Firefox em vez de
+  # mirar elementos: a Zen reescreve boa parte do chrome, e seletor de
+  # elemento quebra a cada atualizacao dela, enquanto as variaveis continuam
+  # sendo lidas pelo tema base.
+  zenUserChrome = p: ''
+    /* GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix). */
+    :root {
+      --lwt-accent-color: ${p.background};
+      --lwt-text-color: ${p.foreground};
+      --toolbar-bgcolor: ${p.background};
+      --toolbar-color: ${p.foreground};
+      --toolbar-field-background-color: ${p.dark_background};
+      --toolbar-field-color: ${p.foreground};
+      --toolbar-field-focus-background-color: ${p.selection};
+      --tab-selected-bgcolor: ${p.selection};
+      --tab-selected-textcolor: ${p.bright_foreground};
+      --toolbarbutton-icon-fill: ${p.foreground};
+      --focus-outline-color: ${p.accent};
+      --urlbar-box-bgcolor: ${p.dark_background};
+      --panel-background: ${p.background};
+      --panel-color: ${p.foreground};
+      --panel-border-color: ${p.muted};
+    }
+  '';
+
+  # Paginas web. SEM `!important` de proposito: qualquer site que defina o
+  # proprio fundo ganha, e so documento sem estilo (texto puro, listagem de
+  # diretorio, pagina simples) recebe a paleta. Injetar com !important
+  # deixaria o tema "completo" e estragaria layout em site de verdade.
+  #
+  # As paginas internas do Firefox recebem tratamento separado, porque ali
+  # dava para ser mais assertivo sem risco de quebrar site de terceiro.
+  zenUserContent = p: ''
+    /* GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix). */
+
+    /* Documento sem estilo proprio: o site sobrescreve isto sem esforco. */
+    html {
+      background-color: ${p.background};
+      color: ${p.foreground};
+    }
+
+    /* Links em documento sem estilo. */
+    html a:link { color: ${p.accent}; }
+    html a:visited { color: ${p.magenta}; }
+
+    /* Texto puro e listagem de diretorio, onde nao ha CSS do site algum. */
+    @-moz-document media-document(plain), url-prefix(file://) {
+      body, pre {
+        background-color: ${p.background};
+        color: ${p.foreground};
+      }
+    }
+  '';
+
   mkThumb = name: w:
     pkgs.runCommand "thumb-${name}-${w.name}.png" {
       nativeBuildInputs = [ pkgs.imagemagick ];
@@ -424,6 +501,11 @@ let
         (spotifyPlayerTheme p);
       "starship.toml" =
         pkgs.writeText "${name}-starship.toml" (starshipConfig p);
+      "zen-user.js" = pkgs.writeText "${name}-zen-user.js" (zenUserJs p);
+      "zen-userChrome.css" =
+        pkgs.writeText "${name}-zen-userChrome.css" (zenUserChrome p);
+      "zen-userContent.css" =
+        pkgs.writeText "${name}-zen-userContent.css" (zenUserContent p);
       # Nome fixo: `load-theme` procura <simbolo>-theme.el no
       # custom-theme-load-path, que o config.el aponta para o tema atual.
       "doom-omarchy-theme.el" =
@@ -748,5 +830,38 @@ in {
       # Wallpaper do tema, via o mesmo caminho do switcher. Sem isso a sessao
       # fica com o hyprpaper que leu um config que pode nem existir mais.
       run ${applyWallpaper}/bin/apply-wallpaper > /dev/null 2>&1 || true
+
+      # Zen: liga o perfil ao tema atual. O caminho do perfil e lido do
+      # profiles.ini em vez de fixado -- ele tem espaco e parenteses no nome
+      # ("ajei92g8.Default (release)") e muda se o perfil for recriado.
+      #
+      # So cria o symlink se nao houver arquivo real no lugar: nao sobrescreve
+      # user.js escrito a mao.
+      zen_profile="$(
+        ${pkgs.gawk}/bin/awk -F= '
+          /^\[Profile/ { p=""; d=0 }
+          /^Path=/      { p=$2 }
+          /^Default=1/  { if (p != "") { print p; exit } }
+        ' ${lib.escapeShellArg "${config.home.homeDirectory}/.zen/profiles.ini"} 2>/dev/null
+      )"
+
+      if [ -n "$zen_profile" ]; then
+        zen_dir=${lib.escapeShellArg "${config.home.homeDirectory}/.zen"}/"$zen_profile"
+        if [ -d "$zen_dir" ] && [ ! -e "$zen_dir/user.js" -o -L "$zen_dir/user.js" ]; then
+          run ln -sfn ${lib.escapeShellArg "${currentTheme}/zen-user.js"} \
+            "$zen_dir/user.js"
+        fi
+
+        # chrome/ ja existe com o zen-themes.css da propria Zen; estes dois
+        # arquivos nao existiam, entao nada e sobrescrito.
+        run mkdir -p "$zen_dir/chrome"
+        for f in userChrome userContent; do
+          if [ ! -e "$zen_dir/chrome/$f.css" ] || [ -L "$zen_dir/chrome/$f.css" ]; then
+            run ln -sfn \
+              ${lib.escapeShellArg currentTheme}/"zen-$f.css" \
+              "$zen_dir/chrome/$f.css"
+          fi
+        done
+      fi
     '';
 }
