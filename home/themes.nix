@@ -321,6 +321,43 @@ let
   # webp** -- verificado na tela: no seletor os .jpg apareciam e os .webp
   # ficavam sem imagem -- e a maioria dos backgrounds do Omarchy e webp.
   # O wallpaper em si continua sendo o arquivo original; o hyprpaper le webp.
+  # Tema do spotify-player (TUI). A `palette` dele tem as mesmas 18 chaves que
+  # o kitty usa -- fundo, frente e as 16 ANSI -- entao o mapeamento e direto.
+  #
+  # O tema publicado se chama sempre `system`: o arquivo muda por tema, o nome
+  # nao, para o app.toml nao precisar saber qual tema esta ativo.
+  # Tema do spotify-player (TUI). A `palette` dele pede fundo, frente e as 16
+  # ANSI -- as mesmas 18 cores que o kitty usa, entao o mapeamento e o mesmo
+  # de `kittyColors` e nao um segundo mapa a manter em sincronia.
+  #
+  # O tema publicado se chama sempre `system`: o arquivo muda por tema, o nome
+  # nao, para o app.toml nao precisar saber qual tema esta ativo.
+  spotifyPlayerTheme = p: ''
+    # GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
+    [[themes]]
+    name = "system"
+
+    [themes.palette]
+    background = "${p.background}"
+    foreground = "${p.foreground}"
+    black = "${p.dark_background}"
+    red = "${p.red}"
+    green = "${p.green}"
+    yellow = "${p.yellow}"
+    blue = "${p.blue}"
+    magenta = "${p.magenta}"
+    cyan = "${p.cyan}"
+    white = "${p.foreground}"
+    bright_black = "${p.muted}"
+    bright_red = "${p.bright_red}"
+    bright_green = "${p.bright_green}"
+    bright_yellow = "${p.bright_yellow}"
+    bright_blue = "${p.bright_blue}"
+    bright_magenta = "${p.bright_magenta}"
+    bright_cyan = "${p.bright_cyan}"
+    bright_white = "${p.bright_foreground}"
+  '';
+
   mkThumb = name: w:
     pkgs.runCommand "thumb-${name}-${w.name}.png" {
       nativeBuildInputs = [ pkgs.imagemagick ];
@@ -344,6 +381,9 @@ let
         pkgs.writeText "${name}-kitty-colors.conf" (kittyColors p);
       "dunst-colors.conf" =
         pkgs.writeText "${name}-dunst-colors.conf" (dunstColors p);
+      "spotify-player-theme.toml" =
+        pkgs.writeText "${name}-spotify-player-theme.toml"
+        (spotifyPlayerTheme p);
       # Nome fixo: `load-theme` procura <simbolo>-theme.el no
       # custom-theme-load-path, que o config.el aponta para o tema atual.
       "doom-omarchy-theme.el" =
@@ -622,6 +662,14 @@ in {
     # Symlink FORA do store: precisa apontar para o caminho do tema atual e
     # ser resolvido pelo dunst na leitura, nao congelado no store em build
     # time. Prefixo 50- para ordenar depois do dunstrc principal.
+    # Symlink FORA do store, pelo mesmo motivo do drop-in do dunst: precisa
+    # resolver pelo tema atual na leitura. O app.toml do spotify-player nao e
+    # gerenciado por este repo; para usar isto, ele precisa ter
+    # `theme = "system"`.
+    ".config/spotify-player/theme.toml".source =
+      config.lib.file.mkOutOfStoreSymlink
+      "${currentTheme}/spotify-player-theme.toml";
+
     ".config/dunst/dunstrc.d/50-theme.conf".source =
       config.lib.file.mkOutOfStoreSymlink
       "${currentTheme}/dunst-colors.conf";
