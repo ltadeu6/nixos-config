@@ -38,6 +38,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `home/wallpapers.nix`: **gerado** -- os 92 backgrounds dos 22 temas do Omarchy, baixados e verificados pelo Nix (~52 MB, nao versionados). Nao edite a mao.
 - `home/previews.nix`: **gerado** -- o `preview.png` de cada tema, usado como miniatura no seletor visual. Nao edite a mao.
 - `home/tf2-sdl-fix.nix`: correcao da "mira travada" do TF2 (bug do SDL 3.4.14 do Steam Runtime sob Xwayland); importado por `home/ltadeu6.nix`. Ver "TF2 / mira travada".
+- `home/tf2-cfg.nix`: copia `configs/tf2/overrides/*.cfg` para a pasta de overrides do mastercomfig no TF2; importado por `home/ltadeu6.nix`. Ver "TF2 / cfgs e binds".
+- `configs/tf2/overrides/`: fontes de verdade dos cfgs do TF2 (autoexec, modules do mastercomfig e binds por classe).
 - `configs/hypr/`: fontes de verdade do Hyprland e asset do wallpaper.
 - `configs/waybar/`: configs e scripts do Waybar.
 - `configs/doom/`: configuracao do Doom Emacs versionada no repo.
@@ -778,6 +780,39 @@ Cuidados:
   em foco deixa o mestre absoluto (`DISPLAY=:0 xinput list --long 2` mostra
   `Abs X`) e reproduz o bug de forma deterministica.
 
+### TF2 / cfgs e binds
+
+Fontes de verdade:
+
+- `configs/tf2/overrides/*.cfg`
+- `home/tf2-cfg.nix` (ativacao que copia para
+  `/mnt/games/SteamLibrary/steamapps/common/Team Fortress 2/tf/cfg/overrides/`)
+
+Como funciona:
+
+- O mastercomfig executa `overrides/autoexec.cfg` e `overrides/modules.cfg` no
+  inicio, e a cada troca de classe `overrides/game_overrides.cfg` seguido de
+  `overrides/<classe>.cfg`.
+- `game_overrides.cfg` devolve MOUSE3/4/5 ao padrao em toda troca de classe,
+  para nenhum bind vazar entre classes; cada `<classe>.cfg` so redefine o que
+  precisa.
+- Binds atuais: engineer (M3/M4/M5 destroem e reconstroem sentry, dispenser e
+  entrada do teleporte), medic (M4 troca resistencia do Vaccinator, M5 estoura
+  o uber), spy (M3 ultimo disfarce, M4 medic, M5 scout), pyro (airblast e troca
+  para slot2/slot3 ao soltar, sem `wait`).
+- `autoexec.cfg` mantem `con_logfile "console.log"`, de que o servico
+  `tf2-crashwatch` depende.
+
+Cuidados:
+
+- Sao copias reais, nao symlinks: o TF2 le os cfgs de dentro do container do
+  pressure-vessel, que nao monta `/nix/store`.
+- Edicoes feitas direto na pasta do jogo sao sobrescritas no proximo rebuild;
+  edite em `configs/tf2/overrides/`.
+- Se `/mnt/games` nao estiver montado, a ativacao nao faz nada.
+- Arquivos nessa pasta que nao estao no repo (ex.: `autoexec.cfg.bak`) nao sao
+  tocados nem removidos.
+
 ## Secrets e variaveis de ambiente
 
 ### Segredos versionados hoje
@@ -945,6 +980,7 @@ Cuidados:
 - `$XDG_STATE_HOME/theme-wallpaper/<tema>` (escolha de wallpaper por tema)
 - `~/.config/openclaw/gateway.env`
 - `~/.local/share/tf2-sdl-fix/libSDL3.so.0` (copiado por `home/tf2-sdl-fix.nix`)
+- `.../Team Fortress 2/tf/cfg/overrides/*.cfg` que existem em `configs/tf2/overrides/` (copiados por `home/tf2-cfg.nix`)
 - `~/.oci/config` (symlink para `/run/agenix/oci_config`)
 - `~/.oci/key.pem` (symlink para `/run/agenix/oci_key`)
 - `/etc/antimicrox/controller-mouse.amgp`
