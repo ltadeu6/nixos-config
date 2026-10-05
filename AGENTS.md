@@ -757,6 +757,18 @@ Cuidados:
 - Remover quando o runtime `sniper` trouxer SDL >= 3.4.18: apagar o modulo, o
   import e o `SDL3_DYNAMIC_API` da opcao de lancamento. Versao em uso:
   `strings <runtime>/lib/x86_64-linux-gnu/libSDL3.so.0.* | grep SDL-release`.
+- Acompanhamento: reportado em
+  <https://github.com/ValveSoftware/steam-runtime/issues/857>. Em 2026-10-05 o
+  mantenedor (smcv) respondeu que a atualizacao para 3.4.18 esta em andamento
+  (interno `steamrt/tasks#1152`) e deve entrar primeiro no beta do sniper
+  (Steam > Biblioteca > Ferramentas > "Steam Linux Runtime 3.0 (sniper)" >
+  Propriedades > Betas). Notas de versao do sniper:
+  <https://gitlab.steamos.cloud/steamrt/steamrt/-/wikis/Sniper-release-notes>.
+  Para checar se entrou, procure `SDL-release-3.4.18` (ou maior) com o comando
+  acima no runtime instalado.
+- Contorno oficial sugerido pela Valve, caso o override deixe de servir:
+  `STEAM_COMPAT_RUNTIME_SDL2=classic %command%` (usa o SDL2 classico no lugar do
+  sdl2-compat/SDL3, perdendo as melhorias do SDL3).
 - Se o runtime atualizar para um SDL com tabela de API maior que a do override,
   o dynapi do SDL recusa o override e volta ao SDL do runtime sozinho; o jogo
   nao quebra.
