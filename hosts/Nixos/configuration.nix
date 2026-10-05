@@ -388,10 +388,11 @@ in {
       "udev.log_priority=3"
       "boot.shell_on_fail"
       # ASRock LED Controller (26ce:01a2): HID_QUIRK_IGNORE (0x0004). O chip
-      # declara 12 eixos de joystick inexistentes, cravados em -32767, que o
-      # SDL entrega ao TF2 como gamepad e prendem a mira. A placa nao tem RGB
-      # e o OpenRGB nao esta instalado, entao nada usa esse dispositivo:
-      # o kernel pode ignora-lo por completo (sem event*, sem js*, sem hidraw).
+      # declara 12 eixos de joystick inexistentes, cravados em -32767, e sem o
+      # quirk aparece como gamepad (js0) para SDL/Steam. A placa nao tem RGB e
+      # o OpenRGB nao esta instalado, entao o kernel ignora o dispositivo por
+      # completo (sem event*, sem js*, sem hidraw). Higiene apenas: NAO era a
+      # causa da mira travada do TF2 (ver home/tf2-sdl-fix.nix).
       "usbhid.quirks=0x26CE:0x01A2:0x0004"
     ];
   };
@@ -1046,22 +1047,6 @@ in {
   hardware.bluetooth.enable = true;
   hardware.uinput.enable = true;
 
-  # O "ASRock LED Controller" (26ce:01a2, placa B550M Pro4) publica um HID
-  # report descriptor que declara eixos de joystick que nao existem. O kernel
-  # entao cria /dev/input/js0 com os 12 eixos cravados em -32767 (batente), e o
-  # SDL entrega isso aos jogos como um gamepad legitimo: no TF2 os eixos sao
-  # mapeados para pitch/yaw e prendem a mira num angulo fixo.
-  # Limpar as tags faz SDL/Steam/AntiMicroX ignorarem o dispositivo, mas NAO
-  # afeta /dev/input/js0 (API legada), que seguia legivel e entregando os eixos
-  # no batente. O quirk usbhid em boot.kernelParams e a correcao primaria; as
-  # regras abaixo ficam como defesa extra caso o quirk nao pegue.
-  services.udev.extraRules = ''
-    SUBSYSTEM=="input", ATTRS{idVendor}=="26ce", ATTRS{idProduct}=="01a2", ENV{ID_INPUT_JOYSTICK}="", ENV{ID_INPUT}=""
-    # Limpar as tags nao afeta /dev/input/js0 (API legada de joystick): o no
-    # continua legivel e entrega os 12 eixos no batente para quem ler por ali
-    # (Steam/TF2), reproduzindo a mira presa. Tornar o js* inacessivel resolve.
-    SUBSYSTEM=="input", KERNEL=="js*", ATTRS{idVendor}=="26ce", ATTRS{idProduct}=="01a2", MODE="0000"
-  '';
   security.rtkit.enable = true;
 
   environment.etc."antimicrox/controller-mouse.amgp".text = ''
