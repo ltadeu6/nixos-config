@@ -632,6 +632,19 @@ in
     };
   };
 
+  # Waybar como servico para voltar sozinha se cair (ex.: o modulo cava aborta
+  # quando o PipeWire e reiniciado). Sem Install: quem inicia e o exec-once do
+  # Hyprland, porque o graphical-session.target nao e ativado nesta sessao.
+  systemd.user.services.waybar = {
+    Unit.Description = "Waybar status bar";
+    Service = {
+      ExecStart = "${pkgs.waybar}/bin/waybar";
+      ExecReload = "${pkgs.coreutils}/bin/kill -SIGUSR2 $MAINPID";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+  };
+
   systemd.user.services.tf2-crashwatch = {
     Unit.Description = "Watch for Team Fortress 2 crashes and capture diagnostics";
     Service = {

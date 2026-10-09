@@ -257,6 +257,11 @@ Este modulo concentra:
 - audio e input:
   - `services.pulseaudio.enable = false`
   - `pipewire` com ALSA, Pulse e JACK
+  - `pipewire`, `pipewire-pulse` e `wireplumber` (servicos de usuario) com
+    `restartIfChanged = false`: um switch, inclusive o `nix-flake-update`
+    automatico, nao reinicia o audio no meio da sessao; a versao nova vale no
+    proximo login. Os sockets nao precisam disso: o `switch-to-configuration`
+    so os derruba junto com o servico.
   - `security.rtkit.enable = true`
   - `hardware.uinput.enable = true`
   - `hardware.bluetooth.enable = true`
@@ -407,7 +412,12 @@ Comportamentos importantes:
   - LG ultrawide em alta taxa de refresh
   - monitor lateral `STD Computer Inc LED`
 - Autostart:
-  - `waybar`
+  - `waybar`, como servico de usuario `waybar.service` (definido em
+    `home/ltadeu6.nix`, `Restart=on-failure`): o `exec-once` importa
+    `WAYLAND_DISPLAY`/`DISPLAY`/`HYPRLAND_INSTANCE_SIGNATURE`/`XDG_CURRENT_DESKTOP`
+    para o systemd do usuario e da `systemctl --user restart waybar.service`.
+    O servico nao tem `Install`: o `graphical-session.target` nao e ativado
+    nesta sessao, entao quem inicia e o Hyprland.
   - `apply-wallpaper` (gera o config do hyprpaper e o inicia)
   - `dbus-launch kdeconnect-indicator`
   - shell snippet que usa `hyprctl`, `jq` e `xrandr` para forcar monitor primario
@@ -475,6 +485,11 @@ Dependencias e assumptions do Waybar:
 - `bluetooth` chama `bluetoothctl`.
 - `custom/ac` executa `~/.config/waybar/air_control.py`.
 - Os botoes de lock chamam `hyprlock`.
+- O modulo `cava` aborta a waybar inteira (SIGABRT em `CavaBackend::freeBackend`)
+  quando o PipeWire e reiniciado; por isso a waybar roda como servico com
+  reinicio automatico e o PipeWire nao reinicia em switch (2026-10-09).
+- Para reiniciar a waybar: `systemctl --user restart waybar`; para recarregar
+  so o CSS: `systemctl --user reload waybar` (ou `pkill -SIGUSR2 waybar`).
 
 Cuidados:
 

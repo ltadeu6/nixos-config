@@ -1049,6 +1049,15 @@ in {
 
   security.rtkit.enable = true;
 
+  # Nao reiniciar o audio no meio da sessao quando um switch (inclusive o
+  # nix-flake-update automatico) traz PipeWire novo: o restart corta o som dos
+  # apps abertos e derrubava a waybar (modulo cava). A versao nova vale no
+  # proximo login.
+  systemd.user.services.pipewire.restartIfChanged = false;
+  systemd.user.services.pipewire-pulse.restartIfChanged = false;
+  systemd.user.services.wireplumber.restartIfChanged = false;
+
+
   environment.etc."antimicrox/controller-mouse.amgp".text = ''
 <?xml version="1.0" encoding="UTF-8"?>
     <gamecontroller configversion="19" appversion="3.5.1">
