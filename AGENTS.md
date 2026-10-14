@@ -949,7 +949,7 @@ Estado atual:
 - A automacao `secar_roupas_start` inicia o script ao ligar o helper.
 - A automacao `secar_roupas_stop` desliga `climate.ar` ao desligar o helper.
 - O script `script.secar_roupas_com_ar_condicionado` usa `climate.ar`.
-- As dashboards `ui-lovelace.yaml` e `ui-overview.yaml` exibem um botao para alternar `input_boolean.secar_roupas`.
+- A dashboard `ui-lovelace.yaml` exibe um botao para alternar `input_boolean.secar_roupas`.
 - A temperatura vem de `state_attr('climate.ar', 'current_temperature')`; nao ha sensor de umidade dedicado.
 - A estrategia alterna aquecimento moderado para evaporar agua das roupas e `cool`/`dry` para condensar e drenar a umidade.
 - No inicio, se a sala estiver abaixo de 24 C, o script usa `heat` com setpoint 25 C ate chegar em 25 C, segura ate 5 minutos se ainda estiver abaixo de 27 C, e tem timeout maximo de 15 minutos.
@@ -972,13 +972,20 @@ Cuidados:
 Arquivo principal:
 
 - `configs/home-assistant/ui-lovelace.yaml`
-- `configs/home-assistant/ui-overview.yaml`
 
 Estado atual:
 
 - A dashboard principal `Home` e declarativa e vem de `ui-lovelace.yaml`.
+  No nixpkgs 26.05 o `lovelaceConfigFile` nao vira mais a dashboard default:
+  ele cria a dashboard `nixos-lovelace` (URL `/nixos-lovelace`), cujo titulo e
+  icone sao sobrescritos em `services.home-assistant.config.lovelace.dashboards`.
+- A dashboard default `lovelace` ("Visao geral") ficou em storage mode com uma
+  copia antiga, sem o botao de secar roupas; nao e gerenciada pelo repo. Para
+  usar a `Home` como inicial, defina-a como padrao na UI e oculte a outra.
+- A antiga dashboard extra `Visão Geral` (`ui-overview.yaml`) era copia identica
+  da `Home` e foi removida; nao reintroduza.
 - Os recursos custom do Lovelace sao declarados em `services.home-assistant.config.lovelace.resources`.
-- O painel do Codex existe na dashboard principal `Home` e tambem na dashboard extra `Visão Geral`.
+- O painel do Codex existe na dashboard principal `Home`.
 - O painel escolhido para o Codex e o minimalista.
 
 Dependencias visuais atuais:

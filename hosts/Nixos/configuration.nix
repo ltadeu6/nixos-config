@@ -828,15 +828,13 @@ in {
         ];
 
         lovelace = {
-          dashboards = {
-            overview-dashboard = {
-              mode = "yaml";
-              title = "Visão Geral";
-              icon = "mdi:view-dashboard";
-              show_in_sidebar = true;
-              require_admin = false;
-              filename = "/etc/home-assistant/ui-overview.yaml";
-            };
+          # Gerado por lovelaceConfigFile; o default do modulo se chama "Overview".
+          dashboards.nixos-lovelace = {
+            mode = "yaml";
+            filename = "ui-lovelace.yaml";
+            title = "Home";
+            icon = "mdi:home";
+            show_in_sidebar = true;
           };
           resources = [
             {
@@ -1362,9 +1360,6 @@ in {
       done
     '';
   };
-
-  environment.etc."home-assistant/ui-overview.yaml".source =
-    ../../configs/home-assistant/ui-overview.yaml;
 
   users.users.${username} = {
     isNormalUser = true;
