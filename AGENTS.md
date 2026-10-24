@@ -1029,7 +1029,7 @@ Cuidados:
 |---------|-----|---------------|-------|
 | Homepage | `tadix.dev` | — | Site estatico |
 | Forgejo | `git.tadix.dev` | `3000` | Git; token em `$FORGEJO_API_TOKEN` |
-| Nextcloud 32 | `nextcloud.tadix.dev` | — | PostgreSQL local; admin: `ltadeu6` |
+| Nextcloud 33 | `nextcloud.tadix.dev` | — | PostgreSQL local; admin: `ltadeu6` |
 | JupyterLab | `jupyter.tadix.dev` | `8888` | Senha protegida |
 | BioLab | `biolab.tadix.dev` | — | Site estatico do repo BioLab |
 

@@ -61,7 +61,7 @@ in {
     nodejs
     openssh
     openssl
-    poppler_utils
+    poppler-utils
     procps
     psmisc
     python3
