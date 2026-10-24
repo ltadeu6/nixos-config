@@ -1053,6 +1053,11 @@ Secrets de acesso: `/etc/restic-secrets/password` e `/etc/restic-secrets/s3-env`
 - `./deploy-oracle.sh`
 - Requer `~/.oci/` configurado (gerado automaticamente pelo Home Manager apos rebuild local).
 - Cria snapshot incremental do boot volume antes de cada deploy, mantendo no maximo 4.
+- A conta Always Free tem cota de **5 backups de volume no total** (boot + block, todos
+  os hosts; o `NixOracle2` tem 1). O script conta a cota da conta, apaga os snapshots
+  mais antigos do proprio volume e espera chegarem a `TERMINATED` antes de criar o
+  novo -- em `TERMINATING` eles ainda ocupam cota e o create falha com `LimitExceeded`.
+  Se a cota estiver cheia so com backups de outros volumes, o script aborta sem deploy.
 
 ### Rebuild / apply
 
