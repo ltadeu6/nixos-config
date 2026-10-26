@@ -117,6 +117,13 @@ SSH para a VM Windows: `ssh win11` via alias gerado pelo Home Manager, equivalen
 - O disco principal ainda usa SATA e a rede libvirt ainda usa `rtl8139`; migrar para VirtIO pode melhorar desempenho, mas so faca isso apos confirmar/instalar os drivers VirtIO dentro do Windows.
 - Nao reintroduza `passt` ou `portForward` nesse XML sem um motivo explicito; a configuracao atual depende de `qemu-bridge-helper` e de `/etc/qemu/bridge.conf` permitindo `virbr0`.
 - Para aplicar alteracoes nesse XML: `virsh --connect qemu:///session define hosts/Nixos/libvirt/win11-3.xml`.
+- Controle remoto da VM (tela, PowerShell, Excel/VBA/Power Query/Data Model, add-in
+  Claude for Excel, agentes Claude Code no Windows): skill de usuario `windows-vm` em
+  `~/.claude/skills/windows-vm/` (CLI `bin/winvm`), fora deste repo. Ela instala
+  helpers em `C:\agent` na VM e a tarefa agendada `agent-gui`, que roda scripts na
+  sessao interativa (o SSH cai na sessao 0, sem desktop).
+- O alias `ssh win11` forca `RemoteCommand powershell` + TTY; para comandos
+  nao interativos use `-o RemoteCommand=none -o RequestTTY=no`.
 
 ### Hyprland / wallpaper
 
