@@ -37,7 +37,7 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `home/palettes.nix`: **gerado** -- as 23 paletas (22 do Omarchy + `dracula`) no vocabulario do `colors.toml` do Omarchy. Nao edite a mao.
 - `home/wallpapers.nix`: **gerado** -- os 92 backgrounds dos 22 temas do Omarchy, baixados e verificados pelo Nix (~52 MB, nao versionados). Nao edite a mao.
 - `home/previews.nix`: **gerado** -- o `preview.png` de cada tema, usado como miniatura no seletor visual. Nao edite a mao.
-- `home/tf2-sdl-fix.nix`: correcao da "mira travada" do TF2 (bug do SDL 3.4.14 do Steam Runtime sob Xwayland); importado por `home/ltadeu6.nix`. Ver "TF2 / mira travada".
+- `pkgs/`: pacotes locais chamados via `callPackage` (hoje so `sysex-controls.nix`).
 - `home/tf2-cfg.nix`: instala no TF2 o mastercomfig (`.vpk` baixados com versao e hash fixos) e os cfgs de `configs/tf2/`; importado por `home/ltadeu6.nix`. Ver "TF2 / cfgs e binds".
 - `configs/tf2/overrides/`: fontes de verdade dos cfgs do TF2 (autoexec, modules do mastercomfig e binds por classe).
 - `configs/tf2/comfig-custom/`: preset e lista de addons do mastercomfig.
@@ -596,6 +596,17 @@ Cuidados:
 - Fora do sistema de temas hoje: apps GTK3 (leem `settings.ini` estatico) e
   os dashboards do Home Assistant.
 
+### Perifericos configuraveis (mouse e teclado MIDI)
+
+- Mouse Logitech G300s (`046d:c246`): `services.ratbagd.enable` +
+  `piper` (GUI) / `ratbagctl` (CLI), driver `logitech_g300` do libratbag.
+  Grava DPI, botoes e LED nos perfis da memoria do mouse; substitui o ratslap.
+- Arturia Minilab3 (`1c75:220b`): `sysex-controls` (editor GTK4 livre que
+  substitui o MIDI Control Center), empacotado em `pkgs/sysex-controls.nix`
+  porque nao existe no nixpkgs. Fala SysEx pelo sequencer ALSA, entao funciona
+  com o FluidSynth conectado. Atualizacao de firmware continua exigindo o
+  software da Arturia (VM Windows).
+
 ### Waybar AC / Home Assistant
 
 Arquivo principal:
@@ -733,75 +744,27 @@ Cuidados:
 - Nao use `--wine-prefix ~/Games/none` em uma varredura geral do Ludusavi sem nomes de jogos; isso gera muitos falsos positivos por causa dos arquivos de registro do prefix.
 - Se adicionar jogos novos ao Lutris usando o mesmo prefix `~/Games/none`, eles entram automaticamente no snapshot local do Lutris, mesmo que o Ludusavi nao conheca o jogo.
 
-### TF2 / mira travada (SDL3 + Xwayland)
+### TF2 / mira travada (SDL3 + Xwayland) -- resolvido upstream
 
-Fonte principal:
-
-- `home/tf2-sdl-fix.nix`
-
-Causa raiz (apurada em 2026-10-03; SDL upstream #16163):
-
-- O TF2 64-bit roda no Steam Linux Runtime `sniper`, que traz sdl2-compat sobre
-  **SDL 3.4.14**. Nao e o SDL do nixpkgs, e o bug nao e do Hyprland nem de
-  config do jogo.
-- O SDL guarda em cache o modo dos eixos do ponteiro **mestre** do XInput2
-  ("Virtual core pointer"), consultado uma unica vez no primeiro evento bruto
-  do processo. Sob o Xwayland o mestre alterna entre `xwayland-pointer`
-  (Abs X/Y) e `xwayland-relative-pointer` (Rel X/Y). Se nesse momento ele
-  estava absoluto, o SDL entrega `delta atual - delta anterior`: mouse em
-  velocidade constante vira zero.
-- Por isso e intermitente entre sessoes (corrida no inicio do jogo: mexer no
-  Steam ou em outra janela X durante o carregamento deixa o mestre absoluto) e
-  nada dentro do jogo recupera (`m_rawinput`, `mat_setvideomode`, alt-tab,
-  recentralizar o cursor). So reiniciar o jogo.
-- Assinatura: o giro depende da *variacao* entre eventos, nao da soma. Dez
-  eventos de +60 seguidos de outros dez de +60 dao giro zero no segundo lote.
-
-Correcao em vigor:
-
-- `home/tf2-sdl-fix.nix` baixa o `.deb` oficial
-  `libsdl3-0 3.4.14+ds-1+steamrt3.1+bsrt3.1` da Valve (hash fixo), troca 1 byte
-  (cache por `rawev->sourceid` em vez de `rawev->deviceid`, mesma ideia do PR
-  upstream #16259) e copia o resultado para
-  `~/.local/share/tf2-sdl-fix/libSDL3.so.0`.
-- O TF2 carrega essa copia pelo override do proprio SDL. A opcao de lancamento
-  do TF2 no Steam fica em `localconfig.vdf`, **fora do Nix**:
-  `SDL3_DYNAMIC_API=/home/ltadeu6/.local/share/tf2-sdl-fix/libSDL3.so.0 ENABLE_VKBASALT=1 gamemoderun %command% -novid -nosteamcontroller -nohltv -fullscreen`
-- Conferir que pegou: `grep tf2-sdl-fix /proc/$(pgrep -x tf_linux64)/maps`.
-
-Cuidados:
-
-- A copia tem que ser **arquivo real**: o container do pressure-vessel nao
-  monta `/nix/store`, entao um symlink do Home Manager falharia em silencio
-  (o SDL avisa "Couldn't load an overriding SDL library" e usa o bugado).
-- O byte e especifico deste build. A derivacao confere o sha256 de entrada e de
-  saida e falha se o arquivo da Valve mudar; nao "corrija" o offset sem refazer
-  a analise.
-- O pacote 3.4.16 da Valve **nao** tem a correcao (o `case XI_DeviceChanged`
-  ainda esta comentado); a correcao upstream (PR #16267) entrou no 3.4.18.
-- Remover quando o runtime `sniper` trouxer SDL >= 3.4.18: apagar o modulo, o
-  import e o `SDL3_DYNAMIC_API` da opcao de lancamento. Versao em uso:
-  `strings <runtime>/lib/x86_64-linux-gnu/libSDL3.so.0.* | grep SDL-release`.
-- Acompanhamento: reportado em
-  <https://github.com/ValveSoftware/steam-runtime/issues/857>. Em 2026-10-05 o
-  mantenedor (smcv) respondeu que a atualizacao para 3.4.18 esta em andamento
-  (interno `steamrt/tasks#1152`) e deve entrar primeiro no beta do sniper
-  (Steam > Biblioteca > Ferramentas > "Steam Linux Runtime 3.0 (sniper)" >
-  Propriedades > Betas). Notas de versao do sniper:
-  <https://gitlab.steamos.cloud/steamrt/steamrt/-/wikis/Sniper-release-notes>.
-  Para checar se entrou, procure `SDL-release-3.4.18` (ou maior) com o comando
-  acima no runtime instalado.
-- Contorno oficial sugerido pela Valve, caso o override deixe de servir:
-  `STEAM_COMPAT_RUNTIME_SDL2=classic %command%` (usa o SDL2 classico no lugar do
-  sdl2-compat/SDL3, perdendo as melhorias do SDL3).
-- Se o runtime atualizar para um SDL com tabela de API maior que a do override,
-  o dynapi do SDL recusa o override e volta ao SDL do runtime sozinho; o jogo
-  nao quebra.
-- Para testar sem o TF2: carregar a biblioteca por ctypes numa janela X11 em
-  modo relativo e injetar lotes iguais pelo ydotool. Um movimento por eixo
-  absoluto (`ydotool mousemove --absolute`) com uma janela X **nao confinada**
-  em foco deixa o mestre absoluto (`DISPLAY=:0 xinput list --long 2` mostra
-  `Abs X`) e reproduz o bug de forma deterministica.
+- Causa (apurada em 2026-10-03; SDL upstream #16163): o SDL 3.4.14 do Steam
+  Linux Runtime `sniper` guardava em cache o modo dos eixos do ponteiro mestre
+  do XInput2; sob o Xwayland o mestre alterna entre absoluto e relativo, e o
+  mouse em velocidade constante virava giro zero. Nao era Hyprland nem config.
+- De 2026-10-03 a 2026-11-01 havia o modulo `home/tf2-sdl-fix.nix`, que
+  instalava um `libSDL3.so.0` corrigido (1 byte) carregado via
+  `SDL3_DYNAMIC_API`. Foi removido em 2026-11-01: o `sniper`
+  `3.0.20261021` traz `SDL-release-3.4.18`, que contem a correcao (PR #16267),
+  e a Valve tirou do ar o `.deb` 3.4.14 que o modulo baixava (404 quebrava o
+  rebuild).
+- A opcao de lancamento do TF2 no Steam (`localconfig.vdf`, fora do Nix) deve
+  ficar sem o `SDL3_DYNAMIC_API=...`:
+  `ENABLE_VKBASALT=1 gamemoderun %command% -novid -nosteamcontroller -nohltv -fullscreen`.
+  Mesmo se ficar, o dynapi recusa o override antigo (tabela de API menor) e
+  usa o SDL do runtime.
+- Se a mira voltar a travar: conferir a versao com
+  `strings <sniper>/files/lib/x86_64-linux-gnu/libSDL3.so.0.* | grep SDL-release`
+  e o historico do git deste modulo. Contorno oficial da Valve:
+  `STEAM_COMPAT_RUNTIME_SDL2=classic %command%`.
 
 ### TF2 / cfgs e binds
 
@@ -1018,7 +981,6 @@ Cuidados:
 - `$XDG_STATE_HOME/hyprpaper/hyprpaper.conf` (gerado por `apply-wallpaper`)
 - `$XDG_STATE_HOME/theme-wallpaper/<tema>` (escolha de wallpaper por tema)
 - `~/.config/openclaw/gateway.env`
-- `~/.local/share/tf2-sdl-fix/libSDL3.so.0` (copiado por `home/tf2-sdl-fix.nix`)
 - `.../Team Fortress 2/tf/cfg/overrides/*.cfg`, `tf/custom/mastercomfig-*.vpk` e `tf/custom/comfig-custom/cfg/app/*.cfg` (copiados por `home/tf2-cfg.nix`)
 - `~/.oci/config` (symlink para `/run/agenix/oci_config`)
 - `~/.oci/key.pem` (symlink para `/run/agenix/oci_key`)

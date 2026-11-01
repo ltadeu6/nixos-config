@@ -392,7 +392,7 @@ in {
       # quirk aparece como gamepad (js0) para SDL/Steam. A placa nao tem RGB e
       # o OpenRGB nao esta instalado, entao o kernel ignora o dispositivo por
       # completo (sem event*, sem js*, sem hidraw). Higiene apenas: NAO era a
-      # causa da mira travada do TF2 (ver home/tf2-sdl-fix.nix).
+      # causa da mira travada do TF2 (bug do SDL 3.4.14 do Steam Runtime).
       "usbhid.quirks=0x26CE:0x01A2:0x0004"
     ];
   };
@@ -855,6 +855,9 @@ in {
     gvfs.enable = true;
     gnome.gnome-keyring.enable = true;
     udisks2.enable = true;
+    # Configura o mouse Logitech G300s (DPI, botoes, LED) sem ratslap.
+    # Frontend: piper (GUI) ou ratbagctl (CLI).
+    ratbagd.enable = true;
 
     mysql = {
       enable = false;
@@ -1547,6 +1550,9 @@ in {
     fragments
     android-tools
     antimicrox
+    piper
+    # Editor livre do Minilab3 (substitui o MIDI Control Center da VM).
+    (pkgs.callPackage ../../pkgs/sysex-controls.nix { })
     kitty
     lutris
     protonup-qt
