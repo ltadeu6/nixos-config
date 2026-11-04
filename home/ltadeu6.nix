@@ -227,7 +227,7 @@ let
 in
 
 {
-  imports = [ ./themes.nix ./tf2-cfg.nix ];
+  imports = [ ./themes.nix ./tf2-cfg.nix ./nc-tarefas.nix ];
 
   home.username = "ltadeu6";
   home.homeDirectory = "/home/ltadeu6";

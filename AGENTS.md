@@ -38,6 +38,8 @@ Este arquivo deve refletir o estado atual do repo. Se a estrutura mudar, atualiz
 - `home/wallpapers.nix`: **gerado** -- os 92 backgrounds dos 22 temas do Omarchy, baixados e verificados pelo Nix (~52 MB, nao versionados). Nao edite a mao.
 - `home/previews.nix`: **gerado** -- o `preview.png` de cada tema, usado como miniatura no seletor visual. Nao edite a mao.
 - `pkgs/`: pacotes locais chamados via `callPackage` (hoje so `sysex-controls.nix`).
+- `home/nc-tarefas.nix`: servico `nc-tarefas` e comando `nc-tarefa`; ver "Tarefas do Nextcloud".
+- `configs/nc-tarefas/`: script do vigia (`nc-tarefa.py`) e instrucoes do agente lancado (`instrucoes-agente.md`).
 - `home/tf2-cfg.nix`: instala no TF2 o mastercomfig (`.vpk` baixados com versao e hash fixos) e os cfgs de `configs/tf2/`; importado por `home/ltadeu6.nix`. Ver "TF2 / cfgs e binds".
 - `configs/tf2/overrides/`: fontes de verdade dos cfgs do TF2 (autoexec, modules do mastercomfig e binds por classe).
 - `configs/tf2/comfig-custom/`: preset e lista de addons do mastercomfig.
@@ -743,6 +745,35 @@ Cuidados:
 - Nao faca backup bruto de `~/.local/share/Steam/steamapps`; prefira Ludusavi e excecoes pontuais para jogos nao detectados.
 - Nao use `--wine-prefix ~/Games/none` em uma varredura geral do Ludusavi sem nomes de jogos; isso gera muitos falsos positivos por causa dos arquivos de registro do prefix.
 - Se adicionar jogos novos ao Lutris usando o mesmo prefix `~/Games/none`, eles entram automaticamente no snapshot local do Lutris, mesmo que o Ludusavi nao conheca o jogo.
+
+### Tarefas do Nextcloud (`nc-tarefas`)
+
+Fontes: `home/nc-tarefas.nix`, `configs/nc-tarefas/nc-tarefa.py`,
+`configs/nc-tarefas/instrucoes-agente.md`.
+
+- O usuario manda tarefas subindo arquivos no Nextcloud do NixOracle (em geral um
+  `TODO.zip` com `TODO.txt` + planilhas). O servico de usuario `nc-tarefas`
+  (`nc-tarefa vigiar`) lista `/var/lib/nextcloud/data/ltadeu6/files` por
+  `ssh root@tadix.dev` a cada 60 s.
+- Deteccao por **(ctime, tamanho)** contra o ultimo estado visto, nunca por mtime:
+  o Nextcloud preserva o mtime do cliente, e arquivo enviado com data antiga ja
+  passou despercebido antes. Um lote so vira tarefa quando fica igual por dois
+  ciclos (upload terminado).
+- Cada lote vira `~/Tarefas/NC/<data>_<hora>-<nome>/` (`entrada/`, `MANIFESTO.md`,
+  `TAREFA.md`, `run.sh`, `tarefa.json`). Triagem com `claude -p` (sonnet, so
+  leitura): `tarefa`/`duvida` abre `claude --dangerously-skip-permissions
+  --remote-control` num kitty no workspace 9 (`hyprctl -i 0 dispatch exec`);
+  `nao` so notifica. Sem Hyprland a tarefa fica `lancar` e e reaberta depois.
+- O agente nao pergunta no chat: em ultimo caso usa `nc-tarefa perguntar`, que
+  grava em `Claude/Perguntas/` no NC e espera a resposta (arquivo editado ou
+  `<id> - resposta.txt`). `Claude/` e ignorado pelo vigia.
+- **Escritas de agentes no NC precisam ser marcadas** (`cq publicar` ja faz;
+  `nc-tarefa entregar`, ou `nc-tarefa visto CAMINHO`), senao viram tarefa nova.
+- Estado: `~/.local/state/nc-tarefas/estado.json`. `nc-tarefa estado` lista
+  pendencias e tarefas; `nc-tarefa iniciar [--desde "AAAA-MM-DD HH:MM"]`
+  (hora local; o servidor mostra UTC) refaz a linha de base.
+- O servico depende da chave ssh sem senha para `root@tadix.dev` e do
+  `claude` logado do usuario.
 
 ### TF2 / mira travada (SDL3 + Xwayland) -- resolvido upstream
 
