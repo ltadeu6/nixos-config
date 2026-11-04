@@ -18,9 +18,10 @@
 
 CAMINHO é relativo a files/ do usuário no NC (ex.: "OEE Dissolução/x.xlsm").
 
-Detecção: compara (ctime, tamanho) de cada arquivo com o último estado visto.
-Não usa mtime: o Nextcloud preserva o mtime do cliente, então um arquivo com data
-antiga chega com mtime antigo. O ctime muda em qualquer escrita no servidor.
+Detecção: compara (inode, tamanho, mtime) de cada arquivo com o último estado visto.
+Não confia só no mtime: o Nextcloud preserva o mtime do cliente, então um arquivo com
+data antiga chega com mtime antigo; mas todo upload grava um arquivo novo (inode novo).
+Não usa ctime: chown/chmod mudam o ctime de arquivos que ninguém alterou.
 """
 import datetime
 import fcntl
@@ -88,13 +89,13 @@ class Estado:
 
 
 def listar(caminhos=None):
-    """{caminho: [ctime, tamanho, mtime]} dos arquivos em files/ (ou só dos caminhos dados)."""
+    """{caminho: [ctime, tamanho, mtime, inode]} dos arquivos em files/ (ou só dos caminhos dados)."""
     if caminhos:
         alvo = " ".join(shlex.quote(NC_FILES + "/" + c) for c in caminhos)
         # %P fica vazio quando o próprio arquivo é o ponto de partida: usa %p e corta o prefixo
-        cmd = f"find {alvo} -type f -printf '%C@\\t%s\\t%T@\\t%p\\0' 2>/dev/null; true"
+        cmd = f"find {alvo} -type f -printf '%C@\\t%s\\t%T@\\t%i\\t%p\\0' 2>/dev/null; true"
     else:
-        cmd = f"find {NC_FILES} -type f -printf '%C@\\t%s\\t%T@\\t%P\\0'"
+        cmd = f"find {NC_FILES} -type f -printf '%C@\\t%s\\t%T@\\t%i\\t%P\\0'"
     r = ssh(cmd, capture_output=True, timeout=120)
     if r.returncode != 0:
         raise RuntimeError("listagem falhou: " + r.stderr.decode(errors="replace")[-300:])
@@ -102,15 +103,18 @@ def listar(caminhos=None):
     for item in r.stdout.decode("utf-8", errors="surrogateescape").split("\0"):
         if not item:
             continue
-        ct, sz, mt, p = item.split("\t", 3)
+        ct, sz, mt, ino, p = item.split("\t", 4)
         if p.startswith(NC_FILES + "/"):
             p = p[len(NC_FILES) + 1:]
-        out[p] = [round(float(ct), 3), int(sz), round(float(mt))]
+        out[p] = [round(float(ct), 3), int(sz), round(float(mt), 3), int(ino)]
     return out
 
 
+VERSAO = 2  # formato de "vistos"; versão diferente = refaz a linha de base
+
+
 def chave(v):
-    return [v[0], v[1]]
+    return [v[3], v[1], v[2]]
 
 
 def ignorado(p):
@@ -301,8 +305,8 @@ def cmd_iniciar(a):
         desde = datetime.datetime.strptime(a[1], "%Y-%m-%d %H:%M").timestamp()
     snap = listar()
     with Estado() as e:
-        e.d = {"vistos": {p: chave(v) for p, v in snap.items() if desde is None or v[0] < desde},
-               "pendentes": {}}
+        e.d = {"versao": VERSAO, "pendentes": {},
+               "vistos": {p: chave(v) for p, v in snap.items() if desde is None or v[0] < desde}}
         n = len(snap) - len(e.d["vistos"])
     print(f"{len(snap)} arquivos; {n} ficam para o vigia tratar")
 
@@ -321,8 +325,8 @@ def ciclo():
     relancar_pendentes()
     snap = listar()
     with Estado() as e:
-        if e.d is None:
-            e.d = {"vistos": {p: chave(v) for p, v in snap.items()}, "pendentes": {}}
+        if e.d is None or e.d.get("versao") != VERSAO:
+            e.d = {"versao": VERSAO, "vistos": {p: chave(v) for p, v in snap.items()}, "pendentes": {}}
             log("estado iniciado com", len(snap), "arquivos")
             return
         vistos, pend = e.d["vistos"], e.d["pendentes"]
@@ -380,14 +384,17 @@ def cmd_entregar(a):
         f"mv {shlex.quote(dest)} {shlex.quote(arqv + '/' + hora + ' ' + nome)} && echo 'versão anterior -> {arqv}'; fi", check=True)
     with open(arq, "rb") as f:
         subprocess.run(["ssh", *SSH_OPTS, HOST, "cat > " + shlex.quote(dest)], stdin=f, check=True)
-    scan(os.path.dirname(rel))
+    scan(os.path.dirname(rel), rel)
     marcar_vistos([rel])
     print("entregue:", rel)
 
 
-def scan(rel_dir):
+def scan(rel_dir, rel_arq=None):
+    # chown só na pasta de topo do que foi escrito (inclui pastas novas criadas como root)
     alvo = ("ltadeu6/files/" + rel_dir).rstrip("/")
-    ssh(f"chown -R nextcloud:nextcloud {shlex.quote(NC_DATA)}/files {shlex.quote(NC_DATA)}/arquivo-* 2>/dev/null; "
+    topo = (rel_arq or rel_dir).strip("/").split("/")[0]
+    ssh(f"chown -R nextcloud:nextcloud {shlex.quote(NC_FILES + '/' + topo)} 2>/dev/null; "
+        f"chown -R nextcloud:nextcloud {shlex.quote(NC_DATA)}/arquivo-* 2>/dev/null; "
         f"nextcloud-occ files:scan --path={shlex.quote(alvo)} >/dev/null 2>&1", check=False)
 
 
@@ -417,7 +424,7 @@ def cmd_perguntar(a):
              "RESPOSTA:\n\n")
     ssh(f"mkdir -p {shlex.quote(NC_FILES + '/' + PERGUNTAS)} && cat > {shlex.quote(NC_FILES + '/' + rel)}",
         input=corpo.encode(), check=True)
-    scan(PERGUNTAS)
+    scan(PERGUNTAS, rel)
     base = listar([rel])[rel]
     notify("Agente perguntou no Nextcloud", f"{rel}")
     print(f"pergunta em {rel}; aguardando resposta...", flush=True)

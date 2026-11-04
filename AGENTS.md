@@ -755,10 +755,12 @@ Fontes: `home/nc-tarefas.nix`, `configs/nc-tarefas/nc-tarefa.py`,
   `TODO.zip` com `TODO.txt` + planilhas). O servico de usuario `nc-tarefas`
   (`nc-tarefa vigiar`) lista `/var/lib/nextcloud/data/ltadeu6/files` por
   `ssh root@tadix.dev` a cada 60 s.
-- Deteccao por **(ctime, tamanho)** contra o ultimo estado visto, nunca por mtime:
-  o Nextcloud preserva o mtime do cliente, e arquivo enviado com data antiga ja
-  passou despercebido antes. Um lote so vira tarefa quando fica igual por dois
-  ciclos (upload terminado).
+- Deteccao por **(inode, tamanho, mtime)** contra o ultimo estado visto. Nao
+  basta comparar mtime ("mais novo que"): o Nextcloud preserva o mtime do cliente,
+  e arquivo enviado com data antiga ja passou despercebido antes; mas todo upload
+  grava arquivo novo, com inode novo. **Nao use ctime**: um `chown -R` de agente
+  mudou o ctime de tudo e reabriu uma tarefa ja feita (2026-11-04). Um lote so
+  vira tarefa quando fica igual por dois ciclos (upload terminado).
 - Cada lote vira `~/Tarefas/NC/<data>_<hora>-<nome>/` (`entrada/`, `MANIFESTO.md`,
   `TAREFA.md`, `run.sh`, `tarefa.json`). Triagem com `claude -p` (sonnet, so
   leitura): `tarefa`/`duvida` abre `claude --dangerously-skip-permissions
