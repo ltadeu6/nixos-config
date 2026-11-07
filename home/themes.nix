@@ -545,6 +545,60 @@ let
     ]
   '';
 
+  # Cores dos apps GTK4/libadwaita (Nautilus, e de quebra os outros apps
+  # libadwaita). Desde o libadwaita 1.6 as cores sao variaveis CSS no :root,
+  # e o GTK carrega ~/.config/gtk-4.0/gtk.css com prioridade USER, acima do
+  # tema do libadwaita -- entao redefinir as variaveis aqui recolore tudo sem
+  # tema GTK customizado. Claro/escuro continua vindo do color-scheme que o
+  # theme-switch grava no dconf.
+  #
+  # O GTK le o gtk.css so ao iniciar o app: a troca vale ao reabrir.
+  gtk4Css = p:
+    let
+      # Texto sobre o accent: escuro se o accent for claro, e vice-versa.
+      accentFg =
+        if brightness p.accent > 140 then p.darker_background else "#ffffff";
+    in ''
+      /* GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix). */
+      :root {
+        --accent-color: ${p.accent};
+        --accent-bg-color: ${p.accent};
+        --accent-fg-color: ${accentFg};
+        --destructive-color: ${p.red};
+        --destructive-bg-color: ${p.red};
+        --success-color: ${p.green};
+        --success-bg-color: ${p.green};
+        --warning-color: ${p.yellow};
+        --warning-bg-color: ${p.yellow};
+        --error-color: ${p.red};
+        --error-bg-color: ${p.red};
+
+        --window-bg-color: ${p.background};
+        --window-fg-color: ${p.foreground};
+        --view-bg-color: ${p.background};
+        --view-fg-color: ${p.foreground};
+        --headerbar-bg-color: ${p.background};
+        --headerbar-fg-color: ${p.foreground};
+        --headerbar-backdrop-color: ${p.background};
+        --sidebar-bg-color: ${p.dark_background};
+        --sidebar-fg-color: ${p.foreground};
+        --sidebar-backdrop-color: ${p.dark_background};
+        --secondary-sidebar-bg-color: ${p.dark_background};
+        --secondary-sidebar-fg-color: ${p.foreground};
+        --secondary-sidebar-backdrop-color: ${p.dark_background};
+        --card-bg-color: ${p.lighter_background};
+        --card-fg-color: ${p.foreground};
+        --thumbnail-bg-color: ${p.lighter_background};
+        --thumbnail-fg-color: ${p.foreground};
+        --dialog-bg-color: ${p.background};
+        --dialog-fg-color: ${p.foreground};
+        --popover-bg-color: ${p.lighter_background};
+        --popover-fg-color: ${p.foreground};
+        --overview-bg-color: ${p.dark_background};
+        --overview-fg-color: ${p.foreground};
+      }
+    '';
+
   # Prefs do Zen por tema.
   #
   # `ui.systemUsesDarkTheme` e a pref que o Firefox usa para emular a
@@ -650,6 +704,7 @@ let
         (spotifyPlayerTheme p);
       "starship.toml" =
         pkgs.writeText "${name}-starship.toml" (starshipConfig p);
+      "gtk4.css" = pkgs.writeText "${name}-gtk4.css" (gtk4Css p);
       "fish-colors.fish" =
         pkgs.writeText "${name}-fish-colors.fish" (fishColors p r);
       "yazi-theme.toml" =
@@ -932,6 +987,12 @@ let
 in {
   home.packages =
     [ themeSwitch themeCurrent themeList wallpaperSwitch applyWallpaper ];
+
+  # Caminho absoluto e fora do store: o import precisa resolver o tema atual
+  # quando o app abre, nao o do build.
+  gtk.gtk4.extraCss = ''
+    @import url("file://${currentTheme}/gtk4.css");
+  '';
 
   # Publica todos os temas: ~/.config/themes/<nome>/{waybar-colors.css,...}
   home.file = lib.listToAttrs (map (name: {

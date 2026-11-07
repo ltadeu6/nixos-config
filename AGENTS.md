@@ -433,10 +433,11 @@ Comportamentos importantes:
 - `antimicrox` e o perfil `/etc/antimicrox/controller-mouse.amgp` continuam instalados, mas nao iniciam automaticamente porque o perfil pode prender o cursor no centro da tela.
 - Launcher:
   - usa `wofi --show drun`
-- Gerenciador de arquivos (`$mainMod, N`): `yazi` num kitty (`programs.yazi`
+- Gerenciador de arquivos: `$mainMod, N` abre o Nautilus (cores do tema via
+  `gtk4.css`); `$mainMod SHIFT, N` abre o `yazi` num kitty (`programs.yazi`
   em `home/ltadeu6.nix`; integracao de shell do modulo desligada porque exige
   `programs.fish` do HM). O comando `y` (`~/.config/fish/functions/y.fish`)
-  abre o yazi e entra no diretorio ao sair. Nautilus continua instalado.
+  abre o yazi e entra no diretorio ao sair.
 - Screenshots:
   - area via `grim` + `slurp`
   - tela inteira via `grim`
@@ -557,6 +558,7 @@ Como cada app recebe o tema:
 | dunst | drop-in `~/.config/dunst/dunstrc.d/50-theme.conf` (symlink fora do store) | `dunstctl reload` |
 | Doom Emacs | `custom-theme-load-path` aponta para o tema atual; simbolo fixo `doom-omarchy` | `emacsclient` + `load-theme` |
 | GTK | `dconf write` de `color-scheme` conforme o `mode` do tema | imediato (so GTK4/libadwaita) |
+| GTK4/libadwaita (Nautilus etc.) | `gtk.gtk4.extraCss` importa por caminho absoluto `current-theme/gtk4.css`, que redefine as variaveis CSS do libadwaita (`--window-bg-color`...) | ao reabrir o app |
 | wallpaper | `apply-wallpaper` gera o `hyprpaper.conf` em runtime | reinicia o hyprpaper |
 
 Cuidados:
