@@ -459,7 +459,9 @@ in
     inkscape
     blender
     discord-ptb
-    vscode
+    # unstable: o vscode 1.144 do 26.05 nao builda (o patchPhase tenta apagar
+    # o rg embutido, que mudou de lugar). Voltar para `vscode` quando corrigir.
+    unstable.vscode
     direnv
     unzip
     unstable.codex
@@ -763,6 +765,33 @@ PY
       use_mpris = true;
     };
   };
+
+  # Gerenciador de arquivos no terminal (Super+N). O tema vem de
+  # ~/.config/yazi/theme.toml, publicado por home/themes.nix.
+  # Sem integracao de shell do modulo: ela exige o programs.fish do Home
+  # Manager, que geraria um config.fish por cima do atual. O `y` abaixo faz o
+  # mesmo -- abre o yazi e, ao sair, entra no diretorio onde ele estava.
+  programs.yazi = {
+    enable = true;
+    enableFishIntegration = false;
+    enableBashIntegration = false;
+    enableZshIntegration = false;
+    settings.mgr = {
+      show_hidden = false;
+      sort_dir_first = true;
+    };
+  };
+
+  home.file.".config/fish/functions/y.fish".text = ''
+    function y --description 'yazi; ao sair, entra no diretorio aberto'
+        set -l tmp (mktemp -t yazi-cwd.XXXXXX)
+        command yazi $argv --cwd-file=$tmp
+        if read -z cwd <$tmp; and test -n "$cwd"; and test "$cwd" != "$PWD"
+            builtin cd -- $cwd
+        end
+        command rm -f -- $tmp
+    end
+  '';
 
   programs.mangohud = {
     enable = true;

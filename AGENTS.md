@@ -377,7 +377,7 @@ Pacotes relevantes para trabalho/dev presentes no estado atual:
 
 - `unstable.codex`
 - `opencode` empacotado via Home Manager com `libstdc++.so.6` no `LD_LIBRARY_PATH`
-- `vscode`
+- `unstable.vscode` (o `vscode` 1.144 do 26.05 falha no patchPhase; voltar quando corrigir)
 - `clang-tools`
 - `nodejs`
 - `stylelint`
@@ -433,6 +433,10 @@ Comportamentos importantes:
 - `antimicrox` e o perfil `/etc/antimicrox/controller-mouse.amgp` continuam instalados, mas nao iniciam automaticamente porque o perfil pode prender o cursor no centro da tela.
 - Launcher:
   - usa `wofi --show drun`
+- Gerenciador de arquivos (`$mainMod, N`): `yazi` num kitty (`programs.yazi`
+  em `home/ltadeu6.nix`; integracao de shell do modulo desligada porque exige
+  `programs.fish` do HM). O comando `y` (`~/.config/fish/functions/y.fish`)
+  abre o yazi e entra no diretorio ao sair. Nautilus continua instalado.
 - Screenshots:
   - area via `grim` + `slurp`
   - tela inteira via `grim`
@@ -546,6 +550,9 @@ Como cada app recebe o tema:
 | waybar | `@import` **relativo** em `configs/waybar/style.css` | `SIGUSR2` |
 | wofi | `@import` **absoluto** no `~/.config/wofi/style.css` gerado | relê ao abrir |
 | kitty | `include` absoluto via `programs.kitty.extraConfig` | `SIGUSR1` |
+| fish | `~/.config/fish/conf.d/theme.fish` faz `source` de `current-theme/fish-colors.fish` | `set -U __theme_serial` dispara handler em todas as sessoes |
+| starship | `~/.config/starship.toml` symlink fora do store | relê a cada prompt |
+| yazi | `~/.config/yazi/theme.toml` symlink fora do store | relê ao abrir |
 | Hyprland | `source` absoluto em `configs/hypr/hyprland.conf` | `hyprctl reload` |
 | dunst | drop-in `~/.config/dunst/dunstrc.d/50-theme.conf` (symlink fora do store) | `dunstctl reload` |
 | Doom Emacs | `custom-theme-load-path` aponta para o tema atual; simbolo fixo `doom-omarchy` | `emacsclient` + `load-theme` |
@@ -595,6 +602,11 @@ Cuidados:
   `setsid --fork`. Com `&` o processo morre junto com o script e a sessao
   fica **sem wallpaper nenhum**; e nao condicione o start a ele "ja estar
   rodando", senao um hyprpaper morto nunca volta.
+- O fish 4.3 criou `~/.config/fish/conf.d/fish_frozen_theme.fish` com cores
+  fixas do Dracula; ele continua la, mas o `theme.fish` vem depois na ordem
+  alfabetica e ganha. Nao use `fish_config theme save`: grava hex fixo de novo.
+- Starship: `scan_timeout = 200` no `starship.toml` gerado; com o default de
+  30 ms o scan de `~` estourava e o prompt avisava timeout ao abrir o shell.
 - Fora do sistema de temas hoje: apps GTK3 (leem `settings.ini` estatico) e
   os dashboards do Home Assistant.
 

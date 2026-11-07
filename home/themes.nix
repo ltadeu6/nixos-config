@@ -369,6 +369,12 @@ let
     # GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
     palette = "system"
 
+    # Em ~ o scan de arquivos (para detectar linguagem/projeto) passa dos 30 ms
+    # do default e o starship avisa "Scanning current directory timed out" ao
+    # abrir o shell. Nao e cache: e o orcamento do scan, ampliado aqui.
+    scan_timeout = 200
+    command_timeout = 1000
+
     [palettes.system]
     accent = "${p.accent}"
     muted = "${p.muted}"
@@ -394,6 +400,149 @@ let
 
     [cmd_duration]
     style = "muted"
+  '';
+
+  # Cores do fish (syntax highlighting e pager). O fish 4.3 migrou o tema para
+  # ~/.config/fish/conf.d/fish_frozen_theme.fish com hex fixo do Dracula, e
+  # por isso o shell nao acompanhava a troca. Este arquivo e carregado por
+  # ~/.config/fish/conf.d/theme.fish, que vem depois na ordem alfabetica.
+  #
+  # O mapeamento reproduz o antigo frozen theme quando aplicado ao `dracula`.
+  # Autosuggestion e comentario usam `wsEmpty`, que ja foi escolhido por
+  # contraste: `muted` some no fundo em varios temas.
+  fishColors = p: r:
+    let
+      h = lib.removePrefix "#";
+      orange = p.orange or p.yellow;
+    in ''
+      # GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
+      set -g fish_color_normal ${h p.foreground}
+      set -g fish_color_command ${h p.cyan}
+      set -g fish_color_keyword ${h p.magenta}
+      set -g fish_color_param ${h p.blue}
+      set -g fish_color_option ${h p.blue}
+      set -g fish_color_quote ${h p.yellow}
+      set -g fish_color_redirection ${h p.foreground}
+      set -g fish_color_end ${h orange}
+      set -g fish_color_error ${h p.red}
+      set -g fish_color_escape ${h p.magenta}
+      set -g fish_color_operator ${h p.green}
+      set -g fish_color_comment ${h r.wsEmpty}
+      set -g fish_color_autosuggestion ${h r.wsEmpty}
+      set -g fish_color_cancel ${h p.red} --reverse
+      set -g fish_color_cwd ${h p.green}
+      set -g fish_color_cwd_root ${h p.red}
+      set -g fish_color_user ${h p.cyan}
+      set -g fish_color_host ${h p.blue}
+      set -g fish_color_host_remote ${h p.yellow}
+      set -g fish_color_status ${h p.red}
+      set -g fish_color_valid_path --underline
+      set -g fish_color_history_current --bold
+      set -g fish_color_match --background=${h p.selection}
+      set -g fish_color_search_match --background=${h p.selection}
+      set -g fish_color_selection --background=${h p.selection}
+      set -g fish_pager_color_completion ${h p.foreground}
+      set -g fish_pager_color_description ${h r.wsEmpty}
+      set -g fish_pager_color_prefix ${h p.accent} --bold
+      set -g fish_pager_color_progress ${h r.wsEmpty}
+      set -g fish_pager_color_selected_background --background=${h p.selection}
+      set -g fish_pager_color_selected_completion ${h p.bright_foreground}
+      set -g fish_pager_color_selected_description ${h p.foreground}
+      set -g fish_pager_color_selected_prefix ${h p.accent} --bold
+    '';
+
+  # Tema do yazi (gerenciador de arquivos no terminal). So sobrescreve o que
+  # da identidade ao tema -- accent em bordas, abas, modo e diretorios; o
+  # resto do preset ja usa cores ANSI, que o kitty pinta com a paleta.
+  # O yazi le o tema ao abrir: a troca vale para a proxima janela.
+  yaziTheme = p: r: ''
+    # GERADO -- nao edite. Vem do tema ativo do sistema (home/themes.nix).
+    [mgr]
+    cwd = { fg = "${p.accent}", bold = true }
+    border_style = { fg = "${p.muted}" }
+    find_keyword = { fg = "${p.yellow}", bold = true, underline = true }
+    find_position = { fg = "${p.magenta}", bold = true }
+    marker_copied = { fg = "${p.green}", bg = "${p.green}" }
+    marker_cut = { fg = "${p.red}", bg = "${p.red}" }
+    marker_marked = { fg = "${p.cyan}", bg = "${p.cyan}" }
+    marker_selected = { fg = "${p.yellow}", bg = "${p.yellow}" }
+    count_copied = { fg = "${p.background}", bg = "${p.green}" }
+    count_cut = { fg = "${p.background}", bg = "${p.red}" }
+    count_selected = { fg = "${p.background}", bg = "${p.yellow}" }
+
+    [indicator]
+    parent = { fg = "${p.foreground}", bg = "${p.selection}" }
+    current = { fg = "${p.bright_foreground}", bg = "${p.selection}", bold = true }
+    preview = { underline = true }
+
+    [tabs]
+    active = { fg = "${p.background}", bg = "${p.accent}", bold = true }
+    inactive = { fg = "${p.accent}", bg = "${p.selection}" }
+
+    [mode]
+    normal_main = { fg = "${p.background}", bg = "${p.accent}", bold = true }
+    normal_alt = { fg = "${p.accent}", bg = "${p.selection}" }
+    select_main = { fg = "${p.background}", bg = "${p.magenta}", bold = true }
+    select_alt = { fg = "${p.magenta}", bg = "${p.selection}" }
+    unset_main = { fg = "${p.background}", bg = "${p.red}", bold = true }
+    unset_alt = { fg = "${p.red}", bg = "${p.selection}" }
+
+    [status]
+    perm_sep = { fg = "${r.wsEmpty}" }
+    perm_type = { fg = "${p.green}" }
+    perm_read = { fg = "${p.yellow}" }
+    perm_write = { fg = "${p.red}" }
+    perm_exec = { fg = "${p.cyan}" }
+    progress_normal = { fg = "${p.accent}", bg = "${p.selection}" }
+    progress_error = { fg = "${p.red}", bg = "${p.selection}" }
+
+    [which]
+    mask = { bg = "${p.dark_background}" }
+    cand = { fg = "${p.accent}" }
+    rest = { fg = "${r.wsEmpty}" }
+    desc = { fg = "${p.magenta}" }
+    separator_style = { fg = "${r.wsEmpty}" }
+
+    [confirm]
+    border = { fg = "${p.accent}" }
+    title = { fg = "${p.accent}" }
+
+    [spot]
+    border = { fg = "${p.accent}" }
+    title = { fg = "${p.accent}" }
+
+    [pick]
+    border = { fg = "${p.accent}" }
+    active = { fg = "${p.magenta}", bold = true }
+
+    [input]
+    border = { fg = "${p.accent}" }
+
+    [cmp]
+    border = { fg = "${p.accent}" }
+
+    [tasks]
+    border = { fg = "${p.accent}" }
+    hovered = { fg = "${p.magenta}", bold = true }
+
+    [help]
+    on = { fg = "${p.accent}" }
+    run = { fg = "${p.magenta}" }
+    footer = { fg = "${p.background}", bg = "${p.foreground}" }
+
+    [filetype]
+    rules = [
+      { mime = "image/*", fg = "${p.yellow}" },
+      { mime = "{audio,video}/*", fg = "${p.magenta}" },
+      { mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "${p.red}" },
+      { mime = "application/{pdf,doc,rtf}", fg = "${p.cyan}" },
+      { mime = "vfs/{absent,stale}", fg = "${r.wsEmpty}" },
+      { url = "*", is = "orphan", bg = "${p.red}" },
+      { url = "*", is = "exec", fg = "${p.green}" },
+      { url = "*", is = "dummy", bg = "${p.red}" },
+      { url = "*/", is = "dummy", bg = "${p.red}" },
+      { url = "*/", fg = "${p.blue}", bold = true },
+    ]
   '';
 
   # Prefs do Zen por tema.
@@ -501,6 +650,10 @@ let
         (spotifyPlayerTheme p);
       "starship.toml" =
         pkgs.writeText "${name}-starship.toml" (starshipConfig p);
+      "fish-colors.fish" =
+        pkgs.writeText "${name}-fish-colors.fish" (fishColors p r);
+      "yazi-theme.toml" =
+        pkgs.writeText "${name}-yazi-theme.toml" (yaziTheme p r);
       "zen-user.js" = pkgs.writeText "${name}-zen-user.js" (zenUserJs p);
       "zen-userChrome.css" =
         pkgs.writeText "${name}-zen-userChrome.css" (zenUserChrome p);
@@ -665,7 +818,8 @@ let
   themeSwitch = pkgs.writeShellApplication {
     name = "theme-switch";
     runtimeInputs = with pkgs; [
-      coreutils wofi libnotify procps hyprland dunst emacs dconf applyWallpaper
+      coreutils wofi libnotify procps hyprland dunst emacs dconf fish
+      applyWallpaper
     ];
     text = ''
       themes_dir=${lib.escapeShellArg themesDir}
@@ -714,6 +868,9 @@ let
       # O `|| true` e proposital -- app fechado nao e erro de troca de tema.
       pkill -SIGUSR2 waybar || true   # waybar: recarrega CSS
       pkill -SIGUSR1 kitty  || true   # kitty: recarrega kitty.conf
+      # fish: mudar uma variavel universal avisa todas as sessoes abertas, e o
+      # handler em conf.d/theme.fish recarrega as cores do tema atual.
+      fish -c 'set -U __theme_serial (random)' >/dev/null 2>&1 || true
       hyprctl reload >/dev/null 2>&1 || true
 
       # Wallpaper: delegado, para o theme-switch e o wallpaper-switch nao
@@ -747,7 +904,7 @@ let
       # A notificacao vem depois do reload do dunst, senao ela mesma sai com a
       # moldura do tema anterior.
       notify-send -a theme-switch "Tema: $name" \
-        "Waybar, kitty, wofi, dunst, Emacs, GTK, wallpaper e bordas atualizados."
+        "Waybar, kitty, fish, wofi, dunst, Emacs, GTK, wallpaper e bordas atualizados."
     '';
   };
 
@@ -803,6 +960,26 @@ in {
     ".config/spotify-player/theme.toml".source =
       config.lib.file.mkOutOfStoreSymlink
       "${currentTheme}/spotify-player-theme.toml";
+
+    # Nome fixo `theme.fish`: os conf.d sao lidos em ordem alfabetica, entao
+    # este vem depois do fish_frozen_theme.fish (se ainda existir) e ganha.
+    # As cores vem por `source` do tema atual, nao por symlink, para o handler
+    # poder recarregar na troca sem reabrir o shell.
+    ".config/fish/conf.d/theme.fish".text = ''
+      # GERADO por home/themes.nix -- nao edite.
+      status is-interactive; or return
+      set -l __theme_file ${currentTheme}/fish-colors.fish
+      test -r $__theme_file; and source $__theme_file
+      function __theme_reload --on-variable __theme_serial
+          set -l f ${currentTheme}/fish-colors.fish
+          test -r $f; and source $f
+          commandline -f repaint 2>/dev/null
+      end
+    '';
+
+    # Mesmo motivo do starship: o yazi le o tema ao abrir.
+    ".config/yazi/theme.toml".source =
+      config.lib.file.mkOutOfStoreSymlink "${currentTheme}/yazi-theme.toml";
 
     ".config/dunst/dunstrc.d/50-theme.conf".source =
       config.lib.file.mkOutOfStoreSymlink
